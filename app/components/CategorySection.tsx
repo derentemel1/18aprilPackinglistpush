@@ -3,20 +3,23 @@
 import { useState } from 'react'
 import type { Category, Item, Bag } from '../types'
 
-const BAGS: Bag[] = ['Luggage A', 'Luggage B', 'Carry-On', 'Personal Item']
+const BAG_COLORS = [
+  'bg-blue-100 text-blue-700',
+  'bg-purple-100 text-purple-700',
+  'bg-orange-100 text-orange-700',
+  'bg-pink-100 text-pink-700',
+  'bg-indigo-100 text-indigo-700',
+  'bg-teal-100 text-teal-700',
+]
 
-const BAG_EMOJI: Record<Bag, string> = {
-  'Luggage A': '🧳',
-  'Luggage B': '🧳',
-  'Carry-On': '✈️',
-  'Personal Item': '👜',
+function bagEmoji(bag: string) {
+  if (bag.startsWith('Luggage')) return '🧳'
+  if (bag.startsWith('Carry')) return '✈️'
+  return '👜'
 }
 
-const BAG_COLOR: Record<Bag, string> = {
-  'Luggage A': 'bg-blue-100 text-blue-700',
-  'Luggage B': 'bg-purple-100 text-purple-700',
-  'Carry-On': 'bg-orange-100 text-orange-700',
-  'Personal Item': 'bg-pink-100 text-pink-700',
+function bagColor(bag: string, bags: string[]) {
+  return BAG_COLORS[bags.indexOf(bag) % BAG_COLORS.length] ?? 'bg-slate-100 text-slate-500'
 }
 
 interface Props {
@@ -25,6 +28,7 @@ interface Props {
   checked: Set<string>
   showPerson: boolean
   isGuest: boolean
+  bags: string[]
   onToggle: (itemId: string) => void
   onBagChange: (itemId: string, bag: Bag | null) => void
   onDeleteItem: (itemId: string) => void
@@ -33,14 +37,14 @@ interface Props {
 }
 
 export default function CategorySection({
-  category, items, checked, showPerson, isGuest,
+  category, items, checked, showPerson, isGuest, bags,
   onToggle, onBagChange, onDeleteItem, onAddItem, onDeleteCategory,
 }: Props) {
   const [adding, setAdding] = useState(false)
   const [newItemName, setNewItemName] = useState('')
 
   const catPacked = items.filter(item => checked.has(item.id)).length
-  const personLabel = category.person === 'AILA' ? '🧒 Aila' : '👩 Trinh'
+  const personLabel = category.person === 'AILA' ? '🧒 Ayla' : '👩 Trinh'
 
   function handleAddItem(e: React.FormEvent) {
     e.preventDefault()
@@ -110,14 +114,14 @@ export default function CategorySection({
               {/* Bag selector */}
               <select
                 value={item.bag ?? ''}
-                onChange={e => onBagChange(item.id, (e.target.value as Bag) || null)}
+                onChange={e => onBagChange(item.id, e.target.value || null)}
                 className={`text-xs rounded-full px-2 py-0.5 border-0 outline-none cursor-pointer max-w-[110px] ${
-                  item.bag ? BAG_COLOR[item.bag] : 'bg-slate-100 text-slate-400'
+                  item.bag ? bagColor(item.bag, bags) : 'bg-slate-100 text-slate-400'
                 }`}
               >
                 <option value="">— bag</option>
-                {BAGS.map(b => (
-                  <option key={b} value={b}>{BAG_EMOJI[b]} {b}</option>
+                {bags.map(b => (
+                  <option key={b} value={b}>{bagEmoji(b)} {b}</option>
                 ))}
               </select>
 

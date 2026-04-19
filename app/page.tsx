@@ -7,16 +7,32 @@ import CategorySection from './components/CategorySection'
 import type { User } from '@supabase/supabase-js'
 import type { Category, Item, Bag, PersonFilter, BagFilter } from './types'
 
-const BAGS: Bag[] = ['Luggage A', 'Luggage B', 'Carry-On', 'Personal Item']
-const BAG_EMOJI: Record<Bag, string> = {
-  'Luggage A': '🧳',
-  'Luggage B': '🧳',
-  'Carry-On': '✈️',
-  'Personal Item': '👜',
-}
 const LOCAL_CHECKED_KEY = 'packing-checked-v2'
 const LOCAL_AUTH_KEY = 'packing-guest'
 const LOCAL_TITLE_KEY = 'packing-title'
+
+function bagEmoji(bag: string) {
+  if (bag.startsWith('Luggage')) return '🧳'
+  if (bag.startsWith('Carry')) return '✈️'
+  return '👜'
+}
+
+function generateBags(luggage: number, carryOn: number, personal: number): string[] {
+  const bags: string[] = []
+  if (luggage === 1) bags.push('Luggage')
+  else for (let i = 0; i < luggage; i++) bags.push(`Luggage ${'ABCD'[i]}`)
+  if (carryOn === 1) bags.push('Carry-On')
+  else for (let i = 0; i < carryOn; i++) bags.push(`Carry-On ${i + 1}`)
+  if (personal === 1) bags.push('Personal Item')
+  else for (let i = 0; i < personal; i++) bags.push(`Personal Item ${i + 1}`)
+  return bags
+}
+
+function loadCount(key: string, def: number) {
+  if (typeof window === 'undefined') return def
+  const v = localStorage.getItem(key)
+  return v !== null ? Number(v) : def
+}
 
 export default function Page() {
   const [categories, setCategories] = useState<Category[]>([])
@@ -33,6 +49,15 @@ export default function Page() {
   )
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
+  const [luggageCount, setLuggageCount] = useState(() => loadCount('packing-luggage', 2))
+  const [carryOnCount, setCarryOnCount] = useState(() => loadCount('packing-carryon', 1))
+  const [personalCount, setPersonalCount] = useState(() => loadCount('packing-personal', 1))
+
+  const bags = generateBags(luggageCount, carryOnCount, personalCount)
+
+  function saveCount(key: string, n: number) {
+    localStorage.setItem(key, String(n))
+  }
 
   // Auth
   useEffect(() => {
@@ -237,6 +262,27 @@ export default function Page() {
               </h1>
             )}
             <p className="text-xs text-slate-400 mt-0.5">April 2026</p>
+            {/* Baggage allowance */}
+            <div className="flex gap-3 mt-1.5">
+              {([
+                { emoji: '🧳', label: 'Luggage', count: luggageCount, set: setLuggageCount, key: 'packing-luggage', max: 4 },
+                { emoji: '✈️', label: 'Carry-On', count: carryOnCount, set: setCarryOnCount, key: 'packing-carryon', max: 3 },
+                { emoji: '👜', label: 'Personal', count: personalCount, set: setPersonalCount, key: 'packing-personal', max: 3 },
+              ] as const).map(({ emoji, count, set, key, max }) => (
+                <div key={key} className="flex items-center gap-1">
+                  <span className="text-xs">{emoji}</span>
+                  <button
+                    onClick={() => { const n = Math.max(0, count - 1); set(n); saveCount(key, n) }}
+                    className="w-4 h-4 text-xs rounded-full bg-slate-200 hover:bg-slate-400 flex items-center justify-center leading-none"
+                  >−</button>
+                  <span className="text-xs font-semibold text-slate-700 w-3 text-center">{count}</span>
+                  <button
+                    onClick={() => { const n = Math.min(max, count + 1); set(n); saveCount(key, n) }}
+                    className="w-4 h-4 text-xs rounded-full bg-slate-200 hover:bg-slate-400 flex items-center justify-center leading-none"
+                  >+</button>
+                </div>
+              ))}
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold text-slate-500">{packed}/{total}</span>
@@ -264,14 +310,14 @@ export default function Page() {
                   : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
               }`}
             >
-              {p === 'AILA' ? '🧒 Aila' : p === 'TRINH' ? '👩 Trinh' : '👨‍👩‍👧 All'}
+              {p === 'AILA' ? '🧒 Ayla' : p === 'TRINH' ? '👩 Trinh' : '👨‍👩‍👧 All'}
             </button>
           ))}
         </div>
 
         {/* Bag filter */}
         <div className="flex flex-wrap gap-2 mt-2">
-          {(['ALL', ...BAGS] as BagFilter[]).map(b => (
+          {(['ALL', ...bags]).map(b => (
             <button
               key={b}
               onClick={() => setBagFilter(b)}
@@ -281,7 +327,7 @@ export default function Page() {
                   : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
               }`}
             >
-              {b === 'ALL' ? '🗂 All bags' : `${BAG_EMOJI[b as Bag]} ${b}`}
+              {b === 'ALL' ? '🗂 All bags' : `${bagEmoji(b)} ${b}`}
             </button>
           ))}
         </div>
@@ -303,6 +349,7 @@ export default function Page() {
             checked={checked}
             showPerson={showPerson}
             isGuest={isGuest}
+            bags={bags}
             onToggle={toggle}
             onBagChange={handleBagChange}
             onDeleteItem={handleDeleteItem}
