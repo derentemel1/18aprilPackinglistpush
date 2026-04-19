@@ -1,7 +1,7 @@
 export type Person = 'AILA' | 'TRINH'
 export type PersonFilter = Person | 'ALL'
-export type Bag = 'Luggage A' | 'Luggage B' | 'Carry-On' | 'Personal Item'
-export type BagFilter = Bag | 'ALL'
+export type Bag = string
+export type BagFilter = string
 
 export interface Category {
   id: string
