@@ -3,93 +3,38 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import AuthScreen from './components/AuthScreen'
+import CategorySection from './components/CategorySection'
 import type { User } from '@supabase/supabase-js'
+import type { Category, Item, Bag, PersonFilter, BagFilter } from './types'
 
-const DATA = {
-  AILA: {
-    Clothing: [
-      'Swimsuit + Floatie',
-      '5 x Pyjamas',
-      'Cardigan',
-      'Jacket w/ hood',
-      'Socks',
-      '5 Shirts + 5 Pants',
-      'Hat',
-      'Flight outfits',
-    ],
-    Eat: [
-      'Assortment of snacks',
-      '2 x bibs',
-      'Spoons + Forks (to leave in VN)',
-      '2 sippy cups',
-      '3 x travel bibs',
-      'Travel water bottle',
-    ],
-    Hygiene: [
-      'Diapers',
-      '2 x Diaper changing liners',
-      'Wipes',
-      'Alcohol spray',
-      "Aila's Toiletry bag",
-      'Toothbrush + toothpaste',
-    ],
-    'On the Go': ['Doona (car seat/stroller)', 'Large bag for Doona', 'Baby carrier'],
-    Papers: ['Notarized consent for travel', 'Bassinet seat confirmation', '2 Passports'],
-    Play: [
-      'Toys / Masking tape',
-      'Toys / Orange tube',
-      'Toys / Busy Book',
-      'Toys / 2-3 interactive books',
-      'Download Ms. Rachel (tablet)',
-      'Toys / Duplos',
-      'Toys / Crayons + Paper',
-    ],
-    Shoes: ['2 Boots + Shoes'],
-    Sleep: ['Baby Monitor', '2 x Blankets', 'Noise machine'],
-  },
-  TRINH: {
-    Clothing: [
-      '5 x Shirts + 5 x Pants',
-      'Pyjamas',
-      'Undergarments',
-      'Swimsuits',
-      'NF black jacket',
-    ],
-    Hygiene: ['Skincare bag', 'Toiletry bag', 'Makeup bag', 'Pads + Liners'],
-    'On the Go': [
-      'On-flight bag (neck pillow, eye mask, chapstick)',
-      'Salomon Shoes',
-      'Wallet',
-      'Water bottle',
-      '1 T-shirt to change',
-      'Sunglasses',
-    ],
-    Papers: ['Passport + Green Card'],
-    Shoes: ['Birkenstock Flipflops + Red Ballet Shoes'],
-    Work: ['Pouch with all Chargers', 'Laptop', 'Headphones', 'Notebook + Pen', 'Stanley cup'],
-  },
-} as const
-
-type Person = keyof typeof DATA
-const LOCAL_KEY = 'packing-v1'
-
-function itemId(person: string, cat: string, item: string) {
-  return `${person}||${cat}||${item}`
+const BAGS: Bag[] = ['Luggage A', 'Luggage B', 'Carry-On', 'Personal Item']
+const BAG_EMOJI: Record<Bag, string> = {
+  'Luggage A': '🧳',
+  'Luggage B': '🧳',
+  'Carry-On': '✈️',
+  'Personal Item': '👜',
 }
+const LOCAL_CHECKED_KEY = 'packing-checked-v2'
+const LOCAL_AUTH_KEY = 'packing-guest'
 
 export default function Page() {
-  const [tab, setTab] = useState<Person>('AILA')
-  const [checked, setChecked] = useState<Record<string, boolean>>({})
+  const [categories, setCategories] = useState<Category[]>([])
+  const [items, setItems] = useState<Item[]>([])
+  const [checked, setChecked] = useState<Set<string>>(new Set())
+  const [personFilter, setPersonFilter] = useState<PersonFilter>('AILA')
+  const [bagFilter, setBagFilter] = useState<BagFilter>('ALL')
+  const [user, setUser] = useState<User | null | 'guest'>(null)
   const [ready, setReady] = useState(false)
-  const [user, setUser] = useState<User | null | 'guest'>('guest')
+  const [addingCategory, setAddingCategory] = useState(false)
+  const [newCatName, setNewCatName] = useState('')
 
-  // Load auth state on mount
+  // Auth
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user) {
         setUser(data.session.user)
       } else {
-        const wasGuest = localStorage.getItem('packing-guest') === '1'
+        const wasGuest = localStorage.getItem(LOCAL_AUTH_KEY) === '1'
         setUser(wasGuest ? 'guest' : null)
       }
     })
@@ -101,78 +46,109 @@ export default function Page() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Load checked state whenever user changes
-  const loadChecked = useCallback(async () => {
+  // Load data
+  const loadData = useCallback(async () => {
     if (user === null) return
+
+    const [{ data: cats }, { data: its }] = await Promise.all([
+      supabase.from('categories').select('*').order('position'),
+      supabase.from('items').select('*').order('position'),
+    ])
+
+    setCategories(cats ?? [])
+    setItems(its ?? [])
 
     if (user === 'guest') {
       try {
-        const raw = localStorage.getItem(LOCAL_KEY)
-        if (raw) setChecked(JSON.parse(raw))
+        const raw = localStorage.getItem(LOCAL_CHECKED_KEY)
+        if (raw) setChecked(new Set(JSON.parse(raw)))
       } catch {}
-      setReady(true)
-      return
+    } else {
+      const { data } = await supabase
+        .from('checked_items')
+        .select('item_id')
+        .eq('user_id', (user as User).id)
+      setChecked(new Set(data?.map(r => r.item_id) ?? []))
     }
 
-    const { data } = await supabase
-      .from('checked_items')
-      .select('item_key')
-      .eq('user_id', user.id)
-
-    const map: Record<string, boolean> = {}
-    data?.forEach(row => { map[row.item_key] = true })
-    setChecked(map)
     setReady(true)
   }, [user])
 
-  useEffect(() => {
-    loadChecked()
-  }, [loadChecked])
+  useEffect(() => { loadData() }, [loadData])
 
-  async function toggle(key: string) {
-    const next = { ...checked, [key]: !checked[key] }
+  // Toggle checked
+  async function toggle(itemId: string) {
+    const next = new Set(checked)
+    if (next.has(itemId)) next.delete(itemId)
+    else next.add(itemId)
     setChecked(next)
 
     if (user === 'guest' || user === null) {
-      try { localStorage.setItem(LOCAL_KEY, JSON.stringify(next)) } catch {}
+      try { localStorage.setItem(LOCAL_CHECKED_KEY, JSON.stringify([...next])) } catch {}
       return
     }
 
-    if (next[key]) {
-      await supabase.from('checked_items').upsert({ user_id: user.id, item_key: key })
+    if (next.has(itemId)) {
+      await supabase.from('checked_items').upsert({ user_id: (user as User).id, item_id: itemId })
     } else {
-      await supabase.from('checked_items').delete().eq('user_id', user.id).eq('item_key', key)
+      await supabase.from('checked_items').delete().eq('user_id', (user as User).id).eq('item_id', itemId)
     }
   }
 
-  async function resetTab() {
-    if (!confirm(`Reset all items for ${tab}?`)) return
-    const next = { ...checked }
-    Object.entries(DATA[tab]).forEach(([cat, items]) => {
-      items.forEach(item => delete next[itemId(tab, cat, item)])
-    })
-    setChecked(next)
-
-    if (user === 'guest' || user === null) {
-      try { localStorage.setItem(LOCAL_KEY, JSON.stringify(next)) } catch {}
-      return
-    }
-
-    const keysToDelete = Object.entries(DATA[tab]).flatMap(([cat, items]) =>
-      items.map(item => itemId(tab, cat, item))
-    )
-    await supabase.from('checked_items')
-      .delete()
-      .eq('user_id', user.id)
-      .in('item_key', keysToDelete)
+  // Bag assignment
+  async function handleBagChange(itemId: string, bag: Bag | null) {
+    setItems(prev => prev.map(it => it.id === itemId ? { ...it, bag } : it))
+    await supabase.from('items').update({ bag }).eq('id', itemId)
   }
 
+  // Add item
+  async function handleAddItem(categoryId: string, name: string) {
+    const maxPos = items.filter(i => i.category_id === categoryId).length
+    const { data } = await supabase
+      .from('items')
+      .insert({ category_id: categoryId, name, position: maxPos })
+      .select()
+      .single()
+    if (data) setItems(prev => [...prev, data])
+  }
+
+  // Delete item
+  async function handleDeleteItem(itemId: string) {
+    if (!confirm('Delete this item?')) return
+    setItems(prev => prev.filter(i => i.id !== itemId))
+    await supabase.from('items').delete().eq('id', itemId)
+  }
+
+  // Add category
+  async function handleAddCategory(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newCatName.trim() || personFilter === 'ALL') return
+    const maxPos = categories.filter(c => c.person === personFilter).length
+    const { data } = await supabase
+      .from('categories')
+      .insert({ person: personFilter, name: newCatName.trim(), position: maxPos })
+      .select()
+      .single()
+    if (data) setCategories(prev => [...prev, data])
+    setNewCatName('')
+    setAddingCategory(false)
+  }
+
+  // Delete category
+  async function handleDeleteCategory(categoryId: string) {
+    if (!confirm('Delete this category and all its items?')) return
+    setCategories(prev => prev.filter(c => c.id !== categoryId))
+    setItems(prev => prev.filter(i => i.category_id !== categoryId))
+    await supabase.from('categories').delete().eq('id', categoryId)
+  }
+
+  // Auth handlers
   function handleAuthSuccess() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user) {
         setUser(data.session.user)
       } else {
-        localStorage.setItem('packing-guest', '1')
+        localStorage.setItem(LOCAL_AUTH_KEY, '1')
         setUser('guest')
       }
     })
@@ -180,15 +156,15 @@ export default function Page() {
 
   async function handleSignOut() {
     await supabase.auth.signOut()
-    localStorage.removeItem('packing-guest')
+    localStorage.removeItem(LOCAL_AUTH_KEY)
     setUser(null)
-    setChecked({})
+    setCategories([])
+    setItems([])
+    setChecked(new Set())
     setReady(false)
   }
 
-  if (user === null) {
-    return <AuthScreen onSuccess={handleAuthSuccess} />
-  }
+  if (user === null) return <AuthScreen onSuccess={handleAuthSuccess} />
 
   if (!ready) {
     return (
@@ -198,34 +174,43 @@ export default function Page() {
     )
   }
 
-  const categories = DATA[tab]
-  const allKeys = Object.entries(categories).flatMap(([cat, items]) =>
-    items.map(item => itemId(tab, cat, item))
-  )
-  const packed = allKeys.filter(k => checked[k]).length
-  const total = allKeys.length
+  const isGuest = user === 'guest'
+
+  // Filter logic
+  const visibleCategories = categories.filter(cat => {
+    if (personFilter !== 'ALL' && cat.person !== personFilter) return false
+    if (bagFilter !== 'ALL') {
+      return items.some(item => item.category_id === cat.id && item.bag === bagFilter)
+    }
+    return true
+  })
+
+  const getVisibleItems = (categoryId: string) =>
+    items.filter(item =>
+      item.category_id === categoryId &&
+      (bagFilter === 'ALL' || item.bag === bagFilter)
+    )
+
+  const allVisibleItems = visibleCategories.flatMap(cat => getVisibleItems(cat.id))
+  const packed = allVisibleItems.filter(item => checked.has(item.id)).length
+  const total = allVisibleItems.length
   const pct = total > 0 ? Math.round((packed / total) * 100) : 0
 
-  const accentBg = tab === 'AILA' ? 'bg-teal-500' : 'bg-violet-500'
-  const accentText = tab === 'AILA' ? 'text-teal-600' : 'text-violet-600'
-  const accentBorder = tab === 'AILA' ? 'border-teal-500' : 'border-violet-500'
-  const isGuest = user === 'guest'
+  // Show person label in category header when viewing all people filtered by bag
+  const showPerson = personFilter === 'ALL' && bagFilter !== 'ALL'
 
   return (
     <main className="min-h-screen pb-10 max-w-lg mx-auto">
-      {/* Header */}
       <header className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-4 pt-5 pb-3">
+        {/* Title */}
         <div className="flex items-baseline justify-between mb-3">
           <div>
             <h1 className="text-xl font-bold text-slate-800">✈️ Vietnam Packing</h1>
             <p className="text-xs text-slate-400 mt-0.5">April 2026</p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold text-slate-500">{packed}/{total} packed</span>
-            <button
-              onClick={handleSignOut}
-              className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
-            >
+            <span className="text-sm font-semibold text-slate-500">{packed}/{total}</span>
+            <button onClick={handleSignOut} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
               {isGuest ? 'Log in' : 'Sign out'}
             </button>
           </div>
@@ -233,92 +218,111 @@ export default function Page() {
 
         {/* Progress bar */}
         <div className="w-full bg-slate-200 rounded-full h-2">
-          <div
-            className={`${accentBg} h-2 rounded-full transition-all duration-300`}
-            style={{ width: `${pct}%` }}
-          />
+          <div className="bg-teal-500 h-2 rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
         </div>
-        <div className="flex justify-between items-center mt-1">
-          <p className="text-xs text-slate-400">
-            {isGuest ? 'Guest — saved on this device only' : `${(user as User).email}`}
-          </p>
-          <p className={`text-xs font-bold ${accentText}`}>{pct}%</p>
-        </div>
+        <p className="text-right text-xs font-bold mt-1 text-teal-600">{pct}%</p>
 
-        {/* Person tabs */}
+        {/* Person filter */}
         <div className="flex gap-2 mt-3">
-          {(['AILA', 'TRINH'] as Person[]).map(p => (
+          {(['AILA', 'TRINH', 'ALL'] as PersonFilter[]).map(p => (
             <button
               key={p}
-              onClick={() => setTab(p)}
+              onClick={() => setPersonFilter(p)}
               className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-colors border ${
-                tab === p
-                  ? `${accentBg} text-white border-transparent`
+                personFilter === p
+                  ? 'bg-teal-500 text-white border-transparent'
                   : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
               }`}
             >
-              {p === 'AILA' ? '🧒 Aila' : '👩 Trinh'}
+              {p === 'AILA' ? '🧒 Aila' : p === 'TRINH' ? '👩 Trinh' : '👨‍👩‍👧 All'}
+            </button>
+          ))}
+        </div>
+
+        {/* Bag filter */}
+        <div className="flex gap-2 mt-2 overflow-x-auto pb-1">
+          {(['ALL', ...BAGS] as BagFilter[]).map(b => (
+            <button
+              key={b}
+              onClick={() => setBagFilter(b)}
+              className={`flex-shrink-0 py-1.5 px-3 rounded-xl text-xs font-semibold transition-colors border ${
+                bagFilter === b
+                  ? 'bg-violet-500 text-white border-transparent'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              {b === 'ALL' ? '🗂 All bags' : `${BAG_EMOJI[b as Bag]} ${b}`}
             </button>
           ))}
         </div>
       </header>
 
-      {/* Categories */}
+      {/* List */}
       <div className="px-4 pt-4 space-y-4">
-        {Object.entries(categories).map(([cat, items]) => {
-          const catKeys = items.map(item => itemId(tab, cat, item))
-          const catPacked = catKeys.filter(k => checked[k]).length
-          return (
-            <section key={cat} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100">
-              <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                <h2 className="font-semibold text-slate-700 text-sm">{cat}</h2>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                  catPacked === items.length
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-slate-100 text-slate-500'
-                }`}>
-                  {catPacked}/{items.length}
-                </span>
-              </div>
-              <ul>
-                {items.map((item, i) => {
-                  const key = itemId(tab, cat, item)
-                  const done = !!checked[key]
-                  return (
-                    <li
-                      key={i}
-                      onClick={() => toggle(key)}
-                      className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer select-none transition-colors active:bg-slate-50 ${
-                        i > 0 ? 'border-t border-slate-50' : ''
-                      } ${done ? 'bg-green-50' : ''}`}
-                    >
-                      <span
-                        className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                          done ? `${accentBg} ${accentBorder} border-transparent` : 'border-slate-300'
-                        }`}
-                      >
-                        {done && (
-                          <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
-                            <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        )}
-                      </span>
-                      <span className={`text-sm leading-snug ${done ? 'line-through text-slate-400' : 'text-slate-700'}`}>
-                        {item}
-                      </span>
-                    </li>
-                  )
-                })}
-              </ul>
-            </section>
-          )
-        })}
+        {visibleCategories.length === 0 && (
+          <p className="text-center text-slate-400 text-sm py-8">
+            {bagFilter !== 'ALL' ? 'No items assigned to this bag yet.' : 'No items found.'}
+          </p>
+        )}
 
+        {visibleCategories.map(cat => (
+          <CategorySection
+            key={cat.id}
+            category={cat}
+            items={getVisibleItems(cat.id)}
+            checked={checked}
+            showPerson={showPerson}
+            isGuest={isGuest}
+            onToggle={toggle}
+            onBagChange={handleBagChange}
+            onDeleteItem={handleDeleteItem}
+            onAddItem={handleAddItem}
+            onDeleteCategory={handleDeleteCategory}
+          />
+        ))}
+
+        {/* Add category — only when viewing a specific person and all bags */}
+        {!isGuest && personFilter !== 'ALL' && bagFilter === 'ALL' && (
+          addingCategory ? (
+            <form onSubmit={handleAddCategory} className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex gap-2">
+              <input
+                autoFocus
+                value={newCatName}
+                onChange={e => setNewCatName(e.target.value)}
+                placeholder="Category name…"
+                className="flex-1 text-sm outline-none text-slate-700 placeholder-slate-300"
+                onKeyDown={e => e.key === 'Escape' && setAddingCategory(false)}
+              />
+              <button type="submit" className="text-teal-500 text-sm font-semibold">Add</button>
+              <button type="button" onClick={() => setAddingCategory(false)} className="text-slate-400 text-sm">Cancel</button>
+            </form>
+          ) : (
+            <button
+              onClick={() => setAddingCategory(true)}
+              className="w-full py-3 text-sm text-teal-500 border border-dashed border-teal-200 rounded-2xl bg-white hover:bg-teal-50 transition-colors"
+            >
+              ＋ Add category
+            </button>
+          )
+        )}
+
+        {/* Reset */}
         <button
-          onClick={resetTab}
-          className="w-full mt-2 mb-6 py-3 text-sm text-red-400 border border-red-100 rounded-2xl bg-white hover:bg-red-50 transition-colors"
+          onClick={async () => {
+            if (!confirm('Reset all visible items?')) return
+            const ids = allVisibleItems.map(i => i.id)
+            const next = new Set(checked)
+            ids.forEach(id => next.delete(id))
+            setChecked(next)
+            if (isGuest) {
+              localStorage.setItem(LOCAL_CHECKED_KEY, JSON.stringify([...next]))
+            } else {
+              await supabase.from('checked_items').delete().eq('user_id', (user as User).id).in('item_id', ids)
+            }
+          }}
+          className="w-full mb-6 py-3 text-sm text-red-400 border border-red-100 rounded-2xl bg-white hover:bg-red-50 transition-colors"
         >
-          Reset {tab === 'AILA' ? "Aila's" : "Trinh's"} list
+          Reset visible items
         </button>
       </div>
     </main>
