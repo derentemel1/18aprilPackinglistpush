@@ -27,7 +27,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-slate-50 antialiased">
+      <body className="bg-slate-300 antialiased">
         {children}
         <script
           dangerouslySetInnerHTML={{

@@ -201,11 +201,11 @@ export default function Page() {
 
   return (
     <main className="min-h-screen pb-10 max-w-lg mx-auto">
-      <header className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 px-4 pt-5 pb-3">
+      <header className="sticky top-0 z-10 bg-slate-300 border-b border-slate-400 px-4 pt-5 pb-3">
         {/* Title */}
         <div className="flex items-baseline justify-between mb-3">
           <div>
-            <h1 className="text-xl font-bold text-slate-800">✈️ Vietnam Packing</h1>
+            <h1 className="text-xl font-bold text-slate-800">✈️ FlyBaby Ready</h1>
             <p className="text-xs text-slate-400 mt-0.5">April 2026</p>
           </div>
           <div className="flex items-center gap-3">
