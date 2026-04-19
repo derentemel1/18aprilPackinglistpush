@@ -127,53 +127,6 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
           <button onClick={onEdit} className="text-sm text-teal-500 hover:text-teal-700 font-medium transition-colors">Edit</button>
         </div>
 
-        {/* See All Bags card */}
-        <button
-          onClick={() => onOpenPacking(null)}
-          className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-3 text-left hover:border-teal-300 transition-colors"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <p className="font-semibold text-slate-800 text-sm">See All Bags</p>
-              <p className="text-xs text-slate-400">All travelers</p>
-            </div>
-            <span className="text-sm font-semibold text-slate-500">{masterProgress.packed}/{masterProgress.total}</span>
-          </div>
-          <div className="w-full bg-slate-100 rounded-full h-1.5">
-            <div className="bg-teal-500 h-1.5 rounded-full transition-all" style={{ width: `${masterPct}%` }} />
-          </div>
-          <p className="text-right text-xs font-bold text-teal-600 mt-0.5">{masterPct}%</p>
-        </button>
-
-        {/* Per-traveler cards */}
-        {travelers.map(t => {
-          const p = progress[t.id] ?? { packed: 0, total: 0 }
-          const pct = p.total > 0 ? Math.round((p.packed / p.total) * 100) : 0
-          return (
-            <button
-              key={t.id}
-              onClick={() => onOpenPacking(t.id)}
-              className="w-full bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 text-left hover:border-teal-300 transition-colors"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <StatusBadge status={t.status} />
-                  <p className="font-semibold text-slate-800 text-sm">{t.nickname}'s Bags</p>
-                </div>
-                <span className="text-sm font-semibold text-slate-500">{p.packed}/{p.total}</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-1.5">
-                <div className="bg-teal-500 h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
-              </div>
-              <p className="text-right text-xs font-bold text-teal-600 mt-0.5">{pct}%</p>
-            </button>
-          )
-        })}
-
-        {travelers.length === 0 && (
-          <p className="text-center text-slate-400 text-sm py-4">No travelers assigned to this journey.</p>
-        )}
-
         {/* Flight info — compact summary, expandable */}
         {segments.length > 0 && (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -224,6 +177,53 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
               </div>
             )}
           </div>
+        )}
+
+        {/* See All Bags card */}
+        <button
+          onClick={() => onOpenPacking(null)}
+          className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-3 text-left hover:border-teal-300 transition-colors"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="font-semibold text-slate-800 text-sm">See All Bags</p>
+              <p className="text-xs text-slate-400">All travelers</p>
+            </div>
+            <span className="text-sm font-semibold text-slate-500">{masterProgress.packed}/{masterProgress.total}</span>
+          </div>
+          <div className="w-full bg-slate-100 rounded-full h-1.5">
+            <div className="bg-teal-500 h-1.5 rounded-full transition-all" style={{ width: `${masterPct}%` }} />
+          </div>
+          <p className="text-right text-xs font-bold text-teal-600 mt-0.5">{masterPct}%</p>
+        </button>
+
+        {/* Per-traveler cards */}
+        {travelers.map(t => {
+          const p = progress[t.id] ?? { packed: 0, total: 0 }
+          const pct = p.total > 0 ? Math.round((p.packed / p.total) * 100) : 0
+          return (
+            <button
+              key={t.id}
+              onClick={() => onOpenPacking(t.id)}
+              className="w-full bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 text-left hover:border-teal-300 transition-colors"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={t.status} />
+                  <p className="font-semibold text-slate-800 text-sm">{t.nickname}'s Bags</p>
+                </div>
+                <span className="text-sm font-semibold text-slate-500">{p.packed}/{p.total}</span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-1.5">
+                <div className="bg-teal-500 h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
+              </div>
+              <p className="text-right text-xs font-bold text-teal-600 mt-0.5">{pct}%</p>
+            </button>
+          )
+        })}
+
+        {travelers.length === 0 && (
+          <p className="text-center text-slate-400 text-sm py-4">No travelers assigned to this journey.</p>
         )}
 
       </div>
