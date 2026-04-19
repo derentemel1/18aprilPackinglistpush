@@ -33,6 +33,20 @@ interface Props {
   onOpenPacking: (travelerId: string | null) => void
 }
 
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    baby:  'bg-rose-100 text-rose-500',
+    minor: 'bg-sky-100 text-sky-500',
+    adult: 'bg-teal-100 text-teal-600',
+  }
+  const labels: Record<string, string> = { baby: 'Baby', minor: 'Kid', adult: 'Adult' }
+  return (
+    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${styles[status] ?? 'bg-slate-100 text-slate-500'}`}>
+      {labels[status] ?? status}
+    </span>
+  )
+}
+
 export default function JourneyDetail({ journey, travelers, segments, travelerBags, user, onBack, onOpenPacking }: Props) {
   const [progress, setProgress] = useState<Record<string, Progress>>({})
   const [masterProgress, setMasterProgress] = useState<Progress>({ packed: 0, total: 0 })
@@ -158,7 +172,7 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
             <div className="flex items-center gap-2">
               <span className="text-xl">📋</span>
               <div>
-                <p className="font-semibold text-slate-800 text-sm">Master List</p>
+                <p className="font-semibold text-slate-800 text-sm">See all Bags</p>
                 <p className="text-xs text-slate-400">All travelers · {journey.name}</p>
               </div>
             </div>
@@ -182,9 +196,9 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">{t.emoji}</span>
+                  <StatusBadge status={t.status} />
                   <div>
-                    <p className="font-semibold text-slate-800 text-sm">{t.nickname}</p>
+                    <p className="font-semibold text-slate-800 text-sm">{t.nickname}'s Bags</p>
                     <p className="text-xs text-slate-400">{journey.name}</p>
                   </div>
                 </div>

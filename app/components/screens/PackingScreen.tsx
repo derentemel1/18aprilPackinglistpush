@@ -13,6 +13,25 @@ function namedBags(travelerId: string | null, travelerNickname: string | undefin
   return journeyTravelers.flatMap(t => (travelerBags[t.id] ?? []).map(b => `${t.nickname}'s ${b}`))
 }
 
+function statusLabel(status: string) {
+  if (status === 'baby') return 'Baby'
+  if (status === 'minor') return 'Kid'
+  return 'Adult'
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    baby:  'bg-rose-100 text-rose-500',
+    minor: 'bg-sky-100 text-sky-500',
+    adult: 'bg-teal-100 text-teal-600',
+  }
+  return (
+    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${styles[status] ?? 'bg-slate-100 text-slate-500'}`}>
+      {statusLabel(status)}
+    </span>
+  )
+}
+
 const LOCAL_CHECKED_KEY = 'packing-checked-v2'
 
 const BABY_DEFAULTS: { name: string; items: string[] }[] = [
@@ -234,7 +253,7 @@ export default function PackingScreen({
   const getCategoryOwner = (cat: Category) => {
     if (!isMaster) return undefined
     const t = journeyTravelers.find(t => t.id === cat.traveler_id)
-    return t ? `${t.emoji} ${t.nickname}` : undefined
+    return t ? `${statusLabel(t.status)} · ${t.nickname}` : undefined
   }
 
   const getVisibleItems = (categoryId: string) =>
@@ -267,7 +286,7 @@ export default function PackingScreen({
     const cat = categories.find(c => c.id === item.category_id)
     if (!cat) return undefined
     const t = journeyTravelers.find(t => t.id === cat.traveler_id)
-    return t ? `${t.emoji} ${t.nickname}` : undefined
+    return t ? `${statusLabel(t.status)} · ${t.nickname}` : undefined
   }
 
   return (
@@ -280,7 +299,7 @@ export default function PackingScreen({
               <button onClick={onBack} className="text-slate-500 hover:text-slate-700 text-sm">←</button>
               <div>
                 <h1 className="text-base font-bold text-slate-800">
-                  {isMaster ? '📋 Master List' : `${travelerEmoji} ${travelerNickname}`}
+                  {isMaster ? '📋 Master List' : `${travelerNickname}`}
                 </h1>
                 <p className="text-xs text-slate-500">{journeyName}</p>
               </div>
@@ -389,8 +408,8 @@ export default function PackingScreen({
                           <span className={`flex-1 text-sm transition-colors ${checked.has(item.id) ? 'line-through text-slate-300' : 'text-slate-700'}`}>
                             {item.name}
                           </span>
-                          <span className="text-xs text-slate-400 text-right whitespace-nowrap">
-                            {traveler && <span>{traveler.emoji} </span>}
+                          <span className="text-xs text-slate-400 text-right whitespace-nowrap flex items-center gap-1">
+                            {traveler && <StatusBadge status={traveler.status} />}
                             {cat?.name}
                           </span>
                         </li>
