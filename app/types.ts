@@ -30,6 +30,8 @@ export interface FlightSegment {
 export interface Category {
   id: string
   person: Person
+  traveler_id: string | null
+  journey_id: string | null
   name: string
   position: number
 }

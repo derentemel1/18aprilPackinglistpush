@@ -4,10 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase'
 import CategorySection from '../CategorySection'
 import type { User } from '@supabase/supabase-js'
-import type { Category, Item, Bag, PersonFilter, BagFilter } from '../../types'
+import type { Category, Item, Bag, BagFilter, Traveler } from '../../types'
 
 const LOCAL_CHECKED_KEY = 'packing-checked-v2'
-const LOCAL_TITLE_KEY = 'packing-title'
 
 function bagEmoji(bag: string) {
   if (bag.startsWith('Luggage')) return '🧳'
@@ -32,52 +31,67 @@ function loadCount(key: string, def: number) {
   return v !== null ? Number(v) : def
 }
 
-export default function PackingScreen({ user, onSignOut }: { user: User | 'guest'; onSignOut: () => void }) {
+interface Props {
+  user: User | 'guest'
+  journeyId: string
+  journeyName: string
+  travelerId: string | null
+  travelerEmoji?: string
+  travelerNickname?: string
+  journeyTravelers: Traveler[]
+  onBack: () => void
+}
+
+export default function PackingScreen({
+  user, journeyId, journeyName, travelerId,
+  travelerEmoji, travelerNickname, journeyTravelers, onBack,
+}: Props) {
   const [categories, setCategories] = useState<Category[]>([])
   const [items, setItems] = useState<Item[]>([])
   const [checked, setChecked] = useState<Set<string>>(new Set())
-  const [personFilter, setPersonFilter] = useState<PersonFilter>('AILA')
   const [bagFilter, setBagFilter] = useState<BagFilter>('ALL')
   const [ready, setReady] = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCatName, setNewCatName] = useState('')
-  const [tripTitle, setTripTitle] = useState(() =>
-    typeof window !== 'undefined' ? (localStorage.getItem(LOCAL_TITLE_KEY) ?? 'FlyBaby Ready') : 'FlyBaby Ready'
-  )
-  const [editingTitle, setEditingTitle] = useState(false)
-  const [titleDraft, setTitleDraft] = useState('')
   const [luggageCount, setLuggageCount] = useState(() => loadCount('packing-luggage', 2))
   const [carryOnCount, setCarryOnCount] = useState(() => loadCount('packing-carryon', 1))
   const [personalCount, setPersonalCount] = useState(() => loadCount('packing-personal', 1))
 
+  const isMaster = travelerId === null
+  const isGuest = user === 'guest'
   const bags = generateBags(luggageCount, carryOnCount, personalCount)
 
-  function saveCount(key: string, n: number) {
-    localStorage.setItem(key, String(n))
-  }
+  function saveCount(key: string, n: number) { localStorage.setItem(key, String(n)) }
 
   const loadData = useCallback(async () => {
-    const [{ data: cats }, { data: its }] = await Promise.all([
-      supabase.from('categories').select('*').order('position'),
-      supabase.from('items').select('*').order('position'),
-    ])
-    setCategories(cats ?? [])
-    setItems(its ?? [])
+    setReady(false)
+    let catQuery = supabase.from('categories').select('*').eq('journey_id', journeyId)
+    if (!isMaster) catQuery = catQuery.eq('traveler_id', travelerId)
 
-    if (user === 'guest') {
+    const { data: cats } = await catQuery.order('position')
+    setCategories(cats ?? [])
+
+    if (cats && cats.length > 0) {
+      const { data: its } = await supabase
+        .from('items').select('*')
+        .in('category_id', cats.map(c => c.id))
+        .order('position')
+      setItems(its ?? [])
+    } else {
+      setItems([])
+    }
+
+    if (isGuest) {
       try {
         const raw = localStorage.getItem(LOCAL_CHECKED_KEY)
         if (raw) setChecked(new Set(JSON.parse(raw)))
       } catch {}
     } else {
-      const { data } = await supabase
-        .from('checked_items')
-        .select('item_id')
-        .eq('user_id', (user as User).id)
+      const { data } = await supabase.from('checked_items').select('item_id').eq('user_id', (user as User).id)
       setChecked(new Set(data?.map(r => r.item_id) ?? []))
     }
     setReady(true)
-  }, [user])
+  }, [journeyId, travelerId, isMaster, isGuest, user])
 
   useEffect(() => { loadData() }, [loadData])
 
@@ -87,7 +101,7 @@ export default function PackingScreen({ user, onSignOut }: { user: User | 'guest
     else next.add(itemId)
     setChecked(next)
 
-    if (user === 'guest') {
+    if (isGuest) {
       try { localStorage.setItem(LOCAL_CHECKED_KEY, JSON.stringify([...next])) } catch {}
       return
     }
@@ -106,10 +120,7 @@ export default function PackingScreen({ user, onSignOut }: { user: User | 'guest
   async function handleAddItem(categoryId: string, name: string) {
     const maxPos = items.filter(i => i.category_id === categoryId).length
     const { data } = await supabase
-      .from('items')
-      .insert({ category_id: categoryId, name, position: maxPos })
-      .select()
-      .single()
+      .from('items').insert({ category_id: categoryId, name, position: maxPos }).select().single()
     if (data) setItems(prev => [...prev, data])
   }
 
@@ -121,13 +132,18 @@ export default function PackingScreen({ user, onSignOut }: { user: User | 'guest
 
   async function handleAddCategory(e: React.FormEvent) {
     e.preventDefault()
-    if (!newCatName.trim() || personFilter === 'ALL') return
-    const maxPos = categories.filter(c => c.person === personFilter).length
+    if (!newCatName.trim()) return
+    const maxPos = categories.length
     const { data } = await supabase
       .from('categories')
-      .insert({ person: personFilter, name: newCatName.trim(), position: maxPos })
-      .select()
-      .single()
+      .insert({
+        name: newCatName.trim(),
+        position: maxPos,
+        journey_id: journeyId,
+        traveler_id: travelerId,
+        person: 'AILA', // legacy field, not used in new flow
+      })
+      .select().single()
     if (data) setCategories(prev => [...prev, data])
     setNewCatName('')
     setAddingCategory(false)
@@ -146,15 +162,12 @@ export default function PackingScreen({ user, onSignOut }: { user: User | 'guest
     </div>
   )
 
-  const isGuest = user === 'guest'
-
-  const visibleCategories = categories.filter(cat => {
-    if (personFilter !== 'ALL' && cat.person !== personFilter) return false
-    if (bagFilter !== 'ALL') {
-      return items.some(item => item.category_id === cat.id && item.bag === bagFilter)
-    }
-    return true
-  })
+  // For master: group categories by traveler
+  const getCategoryOwner = (cat: Category) => {
+    if (!isMaster) return undefined
+    const t = journeyTravelers.find(t => t.id === cat.traveler_id)
+    return t ? `${t.emoji} ${t.nickname}` : undefined
+  }
 
   const getVisibleItems = (categoryId: string) =>
     items.filter(item =>
@@ -162,51 +175,40 @@ export default function PackingScreen({ user, onSignOut }: { user: User | 'guest
       (bagFilter === 'ALL' || item.bag === bagFilter)
     )
 
+  const visibleCategories = categories.filter(cat =>
+    bagFilter === 'ALL' || items.some(i => i.category_id === cat.id && i.bag === bagFilter)
+  )
+
   const allVisibleItems = visibleCategories.flatMap(cat => getVisibleItems(cat.id))
-  const packed = allVisibleItems.filter(item => checked.has(item.id)).length
+  const packed = allVisibleItems.filter(i => checked.has(i.id)).length
   const total = allVisibleItems.length
   const pct = total > 0 ? Math.round((packed / total) * 100) : 0
-  const showPerson = personFilter === 'ALL' && bagFilter !== 'ALL'
 
   return (
     <div className="flex-1 overflow-y-auto pb-24">
       <div className="max-w-lg mx-auto">
+        {/* Header */}
         <header className="sticky top-0 z-10 bg-slate-300 border-b border-slate-400 px-4 pt-5 pb-3">
-          <div className="flex items-baseline justify-between mb-3">
-            <div>
-              {editingTitle ? (
-                <input
-                  autoFocus
-                  value={titleDraft}
-                  onChange={e => setTitleDraft(e.target.value)}
-                  onBlur={() => {
-                    const val = titleDraft.trim() || 'FlyBaby Ready'
-                    setTripTitle(val)
-                    localStorage.setItem(LOCAL_TITLE_KEY, val)
-                    setEditingTitle(false)
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-                    if (e.key === 'Escape') setEditingTitle(false)
-                  }}
-                  className="text-xl font-bold text-slate-800 bg-transparent border-b-2 border-teal-400 outline-none"
-                />
-              ) : (
-                <h1
-                  className="text-xl font-bold text-slate-800 cursor-pointer hover:text-teal-600 transition-colors"
-                  onClick={() => { setTitleDraft(tripTitle); setEditingTitle(true) }}
-                >
-                  ✈️ {tripTitle}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <button onClick={onBack} className="text-slate-500 hover:text-slate-700 text-sm">←</button>
+              <div>
+                <h1 className="text-base font-bold text-slate-800">
+                  {isMaster ? '📋 Master List' : `${travelerEmoji} ${travelerNickname}`}
                 </h1>
-              )}
-              <p className="text-xs text-slate-400 mt-0.5">April 2026</p>
-              <div className="flex gap-3 mt-1.5">
+                <p className="text-xs text-slate-500">{journeyName}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-semibold text-slate-500">{packed}/{total}</span>
+              {/* Bag allowance */}
+              <div className="flex gap-2">
                 {([
                   { emoji: '🧳', count: luggageCount, set: setLuggageCount, key: 'packing-luggage', max: 4 },
                   { emoji: '✈️', count: carryOnCount, set: setCarryOnCount, key: 'packing-carryon', max: 3 },
                   { emoji: '👜', count: personalCount, set: setPersonalCount, key: 'packing-personal', max: 3 },
                 ] as const).map(({ emoji, count, set, key, max }) => (
-                  <div key={key} className="flex items-center gap-1">
+                  <div key={key} className="flex items-center gap-0.5">
                     <span className="text-xs">{emoji}</span>
                     <button onClick={() => { const n = Math.max(0, count - 1); set(n); saveCount(key, n) }} className="w-4 h-4 text-xs rounded-full bg-slate-200 hover:bg-slate-400 flex items-center justify-center leading-none">−</button>
                     <span className="text-xs font-semibold text-slate-700 w-3 text-center">{count}</span>
@@ -215,40 +217,22 @@ export default function PackingScreen({ user, onSignOut }: { user: User | 'guest
                 ))}
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-semibold text-slate-500">{packed}/{total}</span>
-              <button onClick={onSignOut} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
-                {isGuest ? 'Log in' : 'Sign out'}
-              </button>
-            </div>
           </div>
 
+          {/* Progress */}
           <div className="w-full bg-slate-200 rounded-full h-2">
             <div className="bg-teal-500 h-2 rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
           </div>
           <p className="text-right text-xs font-bold mt-1 text-teal-600">{pct}%</p>
 
-          <div className="flex gap-2 mt-3">
-            {(['AILA', 'TRINH', 'ALL'] as PersonFilter[]).map(p => (
-              <button
-                key={p}
-                onClick={() => setPersonFilter(p)}
-                className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-colors border ${
-                  personFilter === p ? 'bg-teal-500 text-white border-transparent' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                {p === 'AILA' ? '🧒 Ayla' : p === 'TRINH' ? '👩 Trinh' : '👨‍👩‍👧 All'}
-              </button>
-            ))}
-          </div>
-
+          {/* Bag filter */}
           <div className="flex flex-wrap gap-2 mt-2">
             {(['ALL', ...bags]).map(b => (
               <button
                 key={b}
                 onClick={() => setBagFilter(b)}
                 className={`py-1.5 px-3 rounded-xl text-xs font-semibold transition-colors border ${
-                  bagFilter === b ? 'bg-violet-500 text-white border-transparent' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                  bagFilter === b ? 'bg-violet-500 text-white border-transparent' : 'bg-white text-slate-600 border-slate-200'
                 }`}
               >
                 {b === 'ALL' ? '🗂 All bags' : `${bagEmoji(b)} ${b}`}
@@ -257,10 +241,11 @@ export default function PackingScreen({ user, onSignOut }: { user: User | 'guest
           </div>
         </header>
 
+        {/* List */}
         <div className="px-4 pt-4 space-y-4">
-          {visibleCategories.length === 0 && (
+          {visibleCategories.length === 0 && !addingCategory && (
             <p className="text-center text-slate-400 text-sm py-8">
-              {bagFilter !== 'ALL' ? 'No items assigned to this bag yet.' : 'No items found.'}
+              {bagFilter !== 'ALL' ? 'No items in this bag.' : 'No categories yet. Add one below.'}
             </p>
           )}
 
@@ -270,9 +255,9 @@ export default function PackingScreen({ user, onSignOut }: { user: User | 'guest
               category={cat}
               items={getVisibleItems(cat.id)}
               checked={checked}
-              showPerson={showPerson}
-              isGuest={isGuest}
+              ownerLabel={getCategoryOwner(cat)}
               bags={bags}
+              readOnly={isMaster}
               onToggle={toggle}
               onBagChange={handleBagChange}
               onDeleteItem={handleDeleteItem}
@@ -281,7 +266,8 @@ export default function PackingScreen({ user, onSignOut }: { user: User | 'guest
             />
           ))}
 
-          {personFilter !== 'ALL' && bagFilter === 'ALL' && (
+          {/* Add category — only for individual traveler lists */}
+          {!isMaster && (
             addingCategory ? (
               <form onSubmit={handleAddCategory} className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex gap-2">
                 <input
@@ -305,6 +291,7 @@ export default function PackingScreen({ user, onSignOut }: { user: User | 'guest
             )
           )}
 
+          {/* Reset */}
           <button
             onClick={async () => {
               if (!confirm('Reset all visible items?')) return

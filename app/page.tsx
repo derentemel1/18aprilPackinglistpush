@@ -3,17 +3,17 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import AuthScreen from './components/AuthScreen'
-import PackingScreen from './components/screens/PackingScreen'
 import TravelersScreen from './components/screens/TravelersScreen'
 import JourneysScreen from './components/screens/JourneysScreen'
 import type { User } from '@supabase/supabase-js'
-import type { AppTab } from './types'
+
+type Tab = 'journeys' | 'travelers'
 
 const LOCAL_AUTH_KEY = 'packing-guest'
 
 export default function Page() {
   const [user, setUser] = useState<User | null | 'guest'>(null)
-  const [tab, setTab] = useState<AppTab>('packing')
+  const [tab, setTab] = useState<Tab>('journeys')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -52,19 +52,23 @@ export default function Page() {
   if (user === null) return <AuthScreen onSuccess={handleAuthSuccess} />
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Active screen */}
-      {tab === 'packing' && <PackingScreen user={user} onSignOut={handleSignOut} />}
-      {tab === 'travelers' && <TravelersScreen user={user} />}
+    <div className="min-h-screen flex flex-col bg-slate-100">
       {tab === 'journeys' && <JourneysScreen user={user} />}
+      {tab === 'travelers' && <TravelersScreen user={user} />}
+
+      {/* Sign out — top right corner */}
+      <div className="fixed top-3 right-4 z-30">
+        <button onClick={handleSignOut} className="text-xs text-slate-400 hover:text-slate-600 transition-colors">
+          Sign out
+        </button>
+      </div>
 
       {/* Bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex z-20">
         {([
-          { id: 'packing', emoji: '🧳', label: 'Packing' },
-          { id: 'travelers', emoji: '👤', label: 'Travelers' },
           { id: 'journeys', emoji: '🗺️', label: 'Journeys' },
-        ] as { id: AppTab; emoji: string; label: string }[]).map(t => (
+          { id: 'travelers', emoji: '👤', label: 'Travelers' },
+        ] as { id: Tab; emoji: string; label: string }[]).map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
