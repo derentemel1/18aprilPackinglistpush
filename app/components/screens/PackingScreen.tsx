@@ -178,7 +178,8 @@ export default function PackingScreen({
 
   async function handleBagChange(itemId: string, bag: Bag | null) {
     setItems(prev => prev.map(it => it.id === itemId ? { ...it, bag } : it))
-    await supabase.from('items').update({ bag }).eq('id', itemId)
+    const { error } = await supabase.from('items').update({ bag }).eq('id', itemId)
+    if (error) console.error('bag update failed:', error)
   }
 
   async function handleAddItem(categoryId: string, name: string) {
