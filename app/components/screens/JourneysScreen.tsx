@@ -307,6 +307,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
         travelerBags={data.travelerBags}
         user={user}
         onBack={() => setView({ type: 'list' })}
+        onEdit={() => openEdit(journey)}
         onOpenPacking={(travelerId) => setView({ type: 'packing', journeyId: view.journeyId, travelerId })}
       />
     )
