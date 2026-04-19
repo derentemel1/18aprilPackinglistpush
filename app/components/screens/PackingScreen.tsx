@@ -178,8 +178,10 @@ export default function PackingScreen({
 
   async function handleBagChange(itemId: string, bag: Bag | null) {
     setItems(prev => prev.map(it => it.id === itemId ? { ...it, bag } : it))
-    const { error } = await supabase.from('items').update({ bag }).eq('id', itemId)
-    if (error) console.error('bag update failed:', error)
+    const { data, error } = await supabase.from('items').update({ bag }).eq('id', itemId).select()
+    if (error) console.error('bag update error:', error)
+    else if (!data || data.length === 0) console.warn('bag update: 0 rows updated — likely blocked by RLS')
+    else console.log('bag update success:', data)
   }
 
   async function handleAddItem(categoryId: string, name: string) {
