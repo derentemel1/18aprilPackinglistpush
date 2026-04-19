@@ -86,6 +86,7 @@ export default function PackingScreen({
   const [ready, setReady] = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCatName, setNewCatName] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
 
   const isMaster = travelerId === null
   const isGuest = user === 'guest'
@@ -247,6 +248,24 @@ export default function PackingScreen({
   const total = allVisibleItems.length
   const pct = total > 0 ? Math.round((packed / total) * 100) : 0
 
+  const q = searchQuery.trim().toLowerCase()
+  const searchResults = q.length > 0
+    ? items.filter(i => i.name.toLowerCase().includes(q)).slice(0, 8)
+    : []
+
+  const getItemBagLabel = (item: Item): string => {
+    if (!item.bag) return 'No bag assigned'
+    return `${bagEmoji(item.bag)} ${item.bag}`
+  }
+
+  const getItemOwnerLabel = (item: Item): string | undefined => {
+    if (!isMaster) return undefined
+    const cat = categories.find(c => c.id === item.category_id)
+    if (!cat) return undefined
+    const t = journeyTravelers.find(t => t.id === cat.traveler_id)
+    return t ? `${t.emoji} ${t.nickname}` : undefined
+  }
+
   return (
     <div className="flex-1 overflow-y-auto pb-24">
       <div className="max-w-lg mx-auto">
@@ -284,6 +303,37 @@ export default function PackingScreen({
                 {b === 'ALL' ? '🗂 All bags' : `${bagEmoji(b)} ${b}`}
               </button>
             ))}
+          </div>
+
+          {/* Search */}
+          <div className="mt-3 relative">
+            <p className="text-xs font-semibold text-slate-500 mb-1">Search your bags</p>
+            <input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="type to find your..."
+              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-teal-400 transition-colors"
+            />
+            {searchResults.length > 0 && (
+              <ul className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 overflow-hidden">
+                {searchResults.map(item => (
+                  <li key={item.id} className="px-3 py-2 flex items-center justify-between gap-3 hover:bg-slate-50 border-b border-slate-50 last:border-0">
+                    <span className="text-sm text-slate-700 truncate">{item.name}</span>
+                    <span className="text-xs text-slate-400 whitespace-nowrap flex items-center gap-1">
+                      {getItemOwnerLabel(item) && (
+                        <span className="text-slate-500">{getItemOwnerLabel(item)} ·</span>
+                      )}
+                      {getItemBagLabel(item)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {q.length > 0 && searchResults.length === 0 && (
+              <p className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 px-3 py-2 text-sm text-slate-400">
+                No items found
+              </p>
+            )}
           </div>
         </header>
 
