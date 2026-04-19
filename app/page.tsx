@@ -16,6 +16,7 @@ const BAG_EMOJI: Record<Bag, string> = {
 }
 const LOCAL_CHECKED_KEY = 'packing-checked-v2'
 const LOCAL_AUTH_KEY = 'packing-guest'
+const LOCAL_TITLE_KEY = 'packing-title'
 
 export default function Page() {
   const [categories, setCategories] = useState<Category[]>([])
@@ -27,6 +28,11 @@ export default function Page() {
   const [ready, setReady] = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCatName, setNewCatName] = useState('')
+  const [tripTitle, setTripTitle] = useState(() =>
+    typeof window !== 'undefined' ? (localStorage.getItem(LOCAL_TITLE_KEY) ?? 'FlyBaby Ready') : 'FlyBaby Ready'
+  )
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState('')
 
   // Auth
   useEffect(() => {
@@ -205,7 +211,31 @@ export default function Page() {
         {/* Title */}
         <div className="flex items-baseline justify-between mb-3">
           <div>
-            <h1 className="text-xl font-bold text-slate-800">✈️ FlyBaby Ready</h1>
+            {editingTitle ? (
+              <input
+                autoFocus
+                value={titleDraft}
+                onChange={e => setTitleDraft(e.target.value)}
+                onBlur={() => {
+                  const val = titleDraft.trim() || 'FlyBaby Ready'
+                  setTripTitle(val)
+                  localStorage.setItem(LOCAL_TITLE_KEY, val)
+                  setEditingTitle(false)
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                  if (e.key === 'Escape') setEditingTitle(false)
+                }}
+                className="text-xl font-bold text-slate-800 bg-transparent border-b-2 border-teal-400 outline-none"
+              />
+            ) : (
+              <h1
+                className="text-xl font-bold text-slate-800 cursor-pointer hover:text-teal-600 transition-colors"
+                onClick={() => { setTitleDraft(tripTitle); setEditingTitle(true) }}
+              >
+                ✈️ {tripTitle}
+              </h1>
+            )}
             <p className="text-xs text-slate-400 mt-0.5">April 2026</p>
           </div>
           <div className="flex items-center gap-3">
