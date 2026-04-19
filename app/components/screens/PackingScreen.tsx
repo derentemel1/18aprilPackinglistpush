@@ -15,6 +15,31 @@ function namedBags(travelerId: string | null, travelerNickname: string | undefin
 
 const LOCAL_CHECKED_KEY = 'packing-checked-v2'
 
+const BABY_DEFAULTS: { name: string; items: string[] }[] = [
+  { name: 'Travel Documents', items: ['Passport', 'Consent letter', 'Visa', 'Birth certificate copy', 'Insurance card'] },
+  { name: 'Drinks & Snacks', items: ['Crackers', 'Puffs', 'Pouches', 'Bananas', 'Berries', 'Pastries', 'Cheese', 'Sippy cup', 'Bottle'] },
+  { name: 'Diaper Essentials', items: ['Diapers', 'Wipes', 'Sanitizer', 'Changing pad', 'Disposal bags'] },
+  { name: 'Clothing', items: ['Extra clothes', 'Sweater', 'Blanket'] },
+  { name: 'Fun & Games', items: ['Toys', 'Books', 'Tablet'] },
+  { name: 'Comfort', items: ['Pacifier', 'Headphones', 'Comfort item'] },
+]
+
+const ADULT_MINOR_DEFAULTS: { name: string; items: string[] }[] = [
+  { name: 'Travel Documents & Money', items: ['Passport', 'ID', 'Tickets', 'Boarding pass', 'Wallet', 'Credit cards', 'Cash'] },
+  { name: 'Clothing', items: ['Shirts', 'Pants', 'Underwear', 'Socks', 'Sleepwear', 'Jacket'] },
+  { name: 'Shoes', items: ['Walking shoes', 'Sandals', 'Dress shoes'] },
+  { name: 'Toiletries', items: ['Toothbrush', 'Toothpaste', 'Deodorant', 'Shampoo', 'Skincare'] },
+  { name: 'Medications & Health', items: ['Prescriptions', 'Pain reliever', 'Vitamins', 'First aid items'] },
+  { name: 'Electronics', items: ['Phone', 'Charger', 'Headphones', 'Laptop', 'Power bank'] },
+  { name: 'Travel Comfort', items: ['Neck pillow', 'Eye mask', 'Earplugs', 'Blanket'] },
+  { name: 'Snacks & Drinks', items: ['Water bottle', 'Snacks', 'Gum', 'Coffee packets'] },
+  { name: 'Entertainment', items: ['Book', 'Tablet', 'Magazine', 'Downloaded shows'] },
+  { name: 'Work or Personal Items', items: ['Notebook', 'Pen', 'Work documents', 'Keys'] },
+  { name: 'Weather / Activity Gear', items: ['Umbrella', 'Swimsuit', 'Sunscreen', 'Hiking gear'] },
+  { name: 'Laundry & Organization', items: ['Laundry bag', 'Packing cubes', 'Zip bags'] },
+  { name: 'Emergency / Backup Items', items: ['Copies of documents', 'Spare credit card', 'Extra charger', 'Emergency contacts'] },
+]
+
 function bagEmoji(bag: string) {
   if (bag.startsWith('Luggage')) return '🧳'
   if (bag.startsWith('Carry')) return '✈️'
@@ -66,12 +91,47 @@ export default function PackingScreen({
   const isGuest = user === 'guest'
   const bags = namedBags(travelerId, travelerNickname, journeyTravelers, travelerBags)
 
+  async function seedDefaults(travelerStatus: string) {
+    const defaults = travelerStatus === 'baby' ? BABY_DEFAULTS : ADULT_MINOR_DEFAULTS
+    const newCats: Category[] = []
+    const newItems: Item[] = []
+
+    for (let pos = 0; pos < defaults.length; pos++) {
+      const def = defaults[pos]
+      const { data: cat } = await supabase
+        .from('categories')
+        .insert({ name: def.name, position: pos, journey_id: journeyId, traveler_id: travelerId, person: 'AILA' })
+        .select().single()
+      if (!cat) continue
+      newCats.push(cat)
+
+      const itemInserts = def.items.map((name, i) => ({ category_id: cat.id, name, position: i }))
+      const { data: its } = await supabase.from('items').insert(itemInserts).select()
+      if (its) newItems.push(...its)
+    }
+
+    setCategories(newCats)
+    setItems(newItems)
+  }
+
   const loadData = useCallback(async () => {
     setReady(false)
     let catQuery = supabase.from('categories').select('*').eq('journey_id', journeyId)
     if (!isMaster) catQuery = catQuery.eq('traveler_id', travelerId)
 
     const { data: cats } = await catQuery.order('position')
+
+    if (!isMaster && !isGuest && (!cats || cats.length === 0)) {
+      const traveler = journeyTravelers.find(t => t.id === travelerId)
+      if (traveler) {
+        await seedDefaults(traveler.status)
+        const { data } = await supabase.from('checked_items').select('item_id').eq('user_id', (user as User).id)
+        setChecked(new Set(data?.map(r => r.item_id) ?? []))
+        setReady(true)
+        return
+      }
+    }
+
     setCategories(cats ?? [])
 
     if (cats && cats.length > 0) {
@@ -94,7 +154,7 @@ export default function PackingScreen({
       setChecked(new Set(data?.map(r => r.item_id) ?? []))
     }
     setReady(true)
-  }, [journeyId, travelerId, isMaster, isGuest, user])
+  }, [journeyId, travelerId, isMaster, isGuest, user, journeyTravelers])
 
   useEffect(() => { loadData() }, [loadData])
 
