@@ -110,7 +110,7 @@ export default function PackingScreen({
 
   const isMaster = travelerId === null
   const isGuest = user === 'guest'
-  const bags = namedBags(travelerId, travelerNickname, journeyTravelers, travelerBags)
+  const bags = journeyTravelers.flatMap(t => (travelerBags[t.id] ?? []).map(b => `${t.nickname}'s ${b}`))
 
   async function seedDefaults(travelerStatus: string) {
     const defaults = travelerStatus === 'baby' ? BABY_DEFAULTS : ADULT_MINOR_DEFAULTS
@@ -299,7 +299,7 @@ export default function PackingScreen({
               <button onClick={onBack} className="text-slate-500 hover:text-slate-700 text-sm">←</button>
               <div>
                 <h1 className="text-base font-bold text-slate-800">
-                  {isMaster ? '📋 Master List' : `${travelerNickname}`}
+                  {isMaster ? '🗂 See All Bags' : `${travelerNickname}`}
                 </h1>
                 <p className="text-xs text-slate-500">{journeyName}</p>
               </div>

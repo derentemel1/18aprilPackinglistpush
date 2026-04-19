@@ -172,7 +172,7 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
             <div className="flex items-center gap-2">
               <span className="text-xl">📋</span>
               <div>
-                <p className="font-semibold text-slate-800 text-sm">See all Bags</p>
+                <p className="font-semibold text-slate-800 text-sm">See All Bags</p>
                 <p className="text-xs text-slate-400">All travelers · {journey.name}</p>
               </div>
             </div>
