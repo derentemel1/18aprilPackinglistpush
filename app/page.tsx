@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import LoginScreen from './components/LoginScreen'
 
 const DATA = {
   AILA: {
@@ -78,14 +79,28 @@ export default function Page() {
   const [tab, setTab] = useState<Person>('AILA')
   const [checked, setChecked] = useState<Record<string, boolean>>({})
   const [ready, setReady] = useState(false)
+  const [authed, setAuthed] = useState(false)
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (raw) setChecked(JSON.parse(raw))
     } catch {}
+    setAuthed(localStorage.getItem('packing-auth') === '1')
     setReady(true)
   }, [])
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-teal-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!authed) {
+    return <LoginScreen onSuccess={() => setAuthed(true)} />
+  }
 
   function toggle(key: string) {
     setChecked(prev => {
@@ -118,14 +133,6 @@ export default function Page() {
   const accentBg = tab === 'AILA' ? 'bg-teal-500' : 'bg-violet-500'
   const accentText = tab === 'AILA' ? 'text-teal-600' : 'text-violet-600'
   const accentBorder = tab === 'AILA' ? 'border-teal-500' : 'border-violet-500'
-
-  if (!ready) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-teal-400 border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
 
   return (
     <main className="min-h-screen pb-10 max-w-lg mx-auto">
