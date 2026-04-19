@@ -408,10 +408,9 @@ export default function PackingScreen({
                           <span className={`flex-1 text-sm transition-colors ${checked.has(item.id) ? 'line-through text-slate-300' : 'text-slate-700'}`}>
                             {item.name}
                           </span>
-                          <span className="text-xs text-slate-400 text-right whitespace-nowrap flex items-center gap-1">
-                            {traveler && <StatusBadge status={traveler.status} />}
-                            {cat?.name}
-                          </span>
+                          {traveler && (
+                            <span className="text-xs text-slate-400 whitespace-nowrap">{traveler.nickname}</span>
+                          )}
                         </li>
                       )
                     })}
