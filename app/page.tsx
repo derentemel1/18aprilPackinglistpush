@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import LoginScreen from './components/LoginScreen'
+import { useState, useEffect, useCallback } from 'react'
+import { supabase } from '../lib/supabase'
+import AuthScreen from './components/AuthScreen'
+import type { User } from '@supabase/supabase-js'
 
 const DATA = {
   AILA: {
@@ -69,9 +71,9 @@ const DATA = {
 } as const
 
 type Person = keyof typeof DATA
-const STORAGE_KEY = 'packing-v1'
+const LOCAL_KEY = 'packing-v1'
 
-function id(person: string, cat: string, item: string) {
+function itemId(person: string, cat: string, item: string) {
   return `${person}||${cat}||${item}`
 }
 
@@ -79,16 +81,114 @@ export default function Page() {
   const [tab, setTab] = useState<Person>('AILA')
   const [checked, setChecked] = useState<Record<string, boolean>>({})
   const [ready, setReady] = useState(false)
-  const [authed, setAuthed] = useState(false)
+  const [user, setUser] = useState<User | null | 'guest'>('guest')
+
+  // Load auth state on mount
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) {
+        setUser(data.session.user)
+      } else {
+        const wasGuest = localStorage.getItem('packing-guest') === '1'
+        setUser(wasGuest ? 'guest' : null)
+      }
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // Load checked state whenever user changes
+  const loadChecked = useCallback(async () => {
+    if (user === null) return
+
+    if (user === 'guest') {
+      try {
+        const raw = localStorage.getItem(LOCAL_KEY)
+        if (raw) setChecked(JSON.parse(raw))
+      } catch {}
+      setReady(true)
+      return
+    }
+
+    const { data } = await supabase
+      .from('checked_items')
+      .select('item_key')
+      .eq('user_id', user.id)
+
+    const map: Record<string, boolean> = {}
+    data?.forEach(row => { map[row.item_key] = true })
+    setChecked(map)
+    setReady(true)
+  }, [user])
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) setChecked(JSON.parse(raw))
-    } catch {}
-    setAuthed(localStorage.getItem('packing-auth') === '1')
-    setReady(true)
-  }, [])
+    loadChecked()
+  }, [loadChecked])
+
+  async function toggle(key: string) {
+    const next = { ...checked, [key]: !checked[key] }
+    setChecked(next)
+
+    if (user === 'guest' || user === null) {
+      try { localStorage.setItem(LOCAL_KEY, JSON.stringify(next)) } catch {}
+      return
+    }
+
+    if (next[key]) {
+      await supabase.from('checked_items').upsert({ user_id: user.id, item_key: key })
+    } else {
+      await supabase.from('checked_items').delete().eq('user_id', user.id).eq('item_key', key)
+    }
+  }
+
+  async function resetTab() {
+    if (!confirm(`Reset all items for ${tab}?`)) return
+    const next = { ...checked }
+    Object.entries(DATA[tab]).forEach(([cat, items]) => {
+      items.forEach(item => delete next[itemId(tab, cat, item)])
+    })
+    setChecked(next)
+
+    if (user === 'guest' || user === null) {
+      try { localStorage.setItem(LOCAL_KEY, JSON.stringify(next)) } catch {}
+      return
+    }
+
+    const keysToDelete = Object.entries(DATA[tab]).flatMap(([cat, items]) =>
+      items.map(item => itemId(tab, cat, item))
+    )
+    await supabase.from('checked_items')
+      .delete()
+      .eq('user_id', user.id)
+      .in('item_key', keysToDelete)
+  }
+
+  function handleAuthSuccess() {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) {
+        setUser(data.session.user)
+      } else {
+        localStorage.setItem('packing-guest', '1')
+        setUser('guest')
+      }
+    })
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    localStorage.removeItem('packing-guest')
+    setUser(null)
+    setChecked({})
+    setReady(false)
+  }
+
+  if (user === null) {
+    return <AuthScreen onSuccess={handleAuthSuccess} />
+  }
 
   if (!ready) {
     return (
@@ -98,33 +198,9 @@ export default function Page() {
     )
   }
 
-  if (!authed) {
-    return <LoginScreen onSuccess={() => setAuthed(true)} />
-  }
-
-  function toggle(key: string) {
-    setChecked(prev => {
-      const next = { ...prev, [key]: !prev[key] }
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch {}
-      return next
-    })
-  }
-
-  function resetTab() {
-    if (!confirm(`Reset all items for ${tab}?`)) return
-    setChecked(prev => {
-      const next = { ...prev }
-      Object.entries(DATA[tab]).forEach(([cat, items]) => {
-        items.forEach(item => delete next[id(tab, cat, item)])
-      })
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)) } catch {}
-      return next
-    })
-  }
-
   const categories = DATA[tab]
   const allKeys = Object.entries(categories).flatMap(([cat, items]) =>
-    items.map(item => id(tab, cat, item))
+    items.map(item => itemId(tab, cat, item))
   )
   const packed = allKeys.filter(k => checked[k]).length
   const total = allKeys.length
@@ -133,6 +209,7 @@ export default function Page() {
   const accentBg = tab === 'AILA' ? 'bg-teal-500' : 'bg-violet-500'
   const accentText = tab === 'AILA' ? 'text-teal-600' : 'text-violet-600'
   const accentBorder = tab === 'AILA' ? 'border-teal-500' : 'border-violet-500'
+  const isGuest = user === 'guest'
 
   return (
     <main className="min-h-screen pb-10 max-w-lg mx-auto">
@@ -143,7 +220,15 @@ export default function Page() {
             <h1 className="text-xl font-bold text-slate-800">✈️ Vietnam Packing</h1>
             <p className="text-xs text-slate-400 mt-0.5">April 2026</p>
           </div>
-          <span className="text-sm font-semibold text-slate-500">{packed}/{total} packed</span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-slate-500">{packed}/{total} packed</span>
+            <button
+              onClick={handleSignOut}
+              className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              {isGuest ? 'Log in' : 'Sign out'}
+            </button>
+          </div>
         </div>
 
         {/* Progress bar */}
@@ -153,7 +238,12 @@ export default function Page() {
             style={{ width: `${pct}%` }}
           />
         </div>
-        <p className={`text-right text-xs font-bold mt-1 ${accentText}`}>{pct}%</p>
+        <div className="flex justify-between items-center mt-1">
+          <p className="text-xs text-slate-400">
+            {isGuest ? 'Guest — saved on this device only' : `${(user as User).email}`}
+          </p>
+          <p className={`text-xs font-bold ${accentText}`}>{pct}%</p>
+        </div>
 
         {/* Person tabs */}
         <div className="flex gap-2 mt-3">
@@ -176,7 +266,7 @@ export default function Page() {
       {/* Categories */}
       <div className="px-4 pt-4 space-y-4">
         {Object.entries(categories).map(([cat, items]) => {
-          const catKeys = items.map(item => id(tab, cat, item))
+          const catKeys = items.map(item => itemId(tab, cat, item))
           const catPacked = catKeys.filter(k => checked[k]).length
           return (
             <section key={cat} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100">
@@ -192,7 +282,7 @@ export default function Page() {
               </div>
               <ul>
                 {items.map((item, i) => {
-                  const key = id(tab, cat, item)
+                  const key = itemId(tab, cat, item)
                   const done = !!checked[key]
                   return (
                     <li
@@ -202,7 +292,6 @@ export default function Page() {
                         i > 0 ? 'border-t border-slate-50' : ''
                       } ${done ? 'bg-green-50' : ''}`}
                     >
-                      {/* Checkbox */}
                       <span
                         className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
                           done ? `${accentBg} ${accentBorder} border-transparent` : 'border-slate-300'
@@ -225,7 +314,6 @@ export default function Page() {
           )
         })}
 
-        {/* Reset */}
         <button
           onClick={resetTab}
           className="w-full mt-2 mb-6 py-3 text-sm text-red-400 border border-red-100 rounded-2xl bg-white hover:bg-red-50 transition-colors"
