@@ -16,28 +16,29 @@ function namedBags(travelerId: string | null, travelerNickname: string | undefin
 const LOCAL_CHECKED_KEY = 'packing-checked-v2'
 
 const BABY_DEFAULTS: { name: string; items: string[] }[] = [
-  { name: 'Travel Documents', items: ['Passport', 'Consent letter', 'Visa', 'Birth certificate copy', 'Insurance card'] },
-  { name: 'Drinks & Snacks', items: ['Crackers', 'Puffs', 'Pouches', 'Bananas', 'Berries', 'Pastries', 'Cheese', 'Sippy cup', 'Bottle'] },
-  { name: 'Diaper Essentials', items: ['Diapers', 'Wipes', 'Sanitizer', 'Changing pad', 'Disposal bags'] },
-  { name: 'Clothing', items: ['Extra clothes', 'Sweater', 'Blanket'] },
-  { name: 'Fun & Games', items: ['Toys', 'Books', 'Tablet'] },
-  { name: 'Comfort', items: ['Pacifier', 'Headphones', 'Comfort item'] },
+  { name: 'Travel Documents', items: [] },
+  { name: 'Drinks & Snacks', items: [] },
+  { name: 'Diaper Essentials', items: [] },
+  { name: 'Clothing', items: [] },
+  { name: 'Fun & Games', items: [] },
+  { name: 'Comfort', items: [] },
+  { name: 'Carseat / Stroller', items: [] },
 ]
 
 const ADULT_MINOR_DEFAULTS: { name: string; items: string[] }[] = [
-  { name: 'Travel Documents & Money', items: ['Passport', 'ID', 'Tickets', 'Boarding pass', 'Wallet', 'Credit cards', 'Cash'] },
-  { name: 'Clothing', items: ['Shirts', 'Pants', 'Underwear', 'Socks', 'Sleepwear', 'Jacket'] },
-  { name: 'Shoes', items: ['Walking shoes', 'Sandals', 'Dress shoes'] },
-  { name: 'Toiletries', items: ['Toothbrush', 'Toothpaste', 'Deodorant', 'Shampoo', 'Skincare'] },
-  { name: 'Medications & Health', items: ['Prescriptions', 'Pain reliever', 'Vitamins', 'First aid items'] },
-  { name: 'Electronics', items: ['Phone', 'Charger', 'Headphones', 'Laptop', 'Power bank'] },
-  { name: 'Travel Comfort', items: ['Neck pillow', 'Eye mask', 'Earplugs', 'Blanket'] },
-  { name: 'Snacks & Drinks', items: ['Water bottle', 'Snacks', 'Gum', 'Coffee packets'] },
-  { name: 'Entertainment', items: ['Book', 'Tablet', 'Magazine', 'Downloaded shows'] },
-  { name: 'Work or Personal Items', items: ['Notebook', 'Pen', 'Work documents', 'Keys'] },
-  { name: 'Weather / Activity Gear', items: ['Umbrella', 'Swimsuit', 'Sunscreen', 'Hiking gear'] },
-  { name: 'Laundry & Organization', items: ['Laundry bag', 'Packing cubes', 'Zip bags'] },
-  { name: 'Emergency / Backup Items', items: ['Copies of documents', 'Spare credit card', 'Extra charger', 'Emergency contacts'] },
+  { name: 'Travel Documents & Money', items: [] },
+  { name: 'Clothing', items: [] },
+  { name: 'Shoes', items: [] },
+  { name: 'Toiletries', items: [] },
+  { name: 'Medications & Health', items: [] },
+  { name: 'Electronics', items: [] },
+  { name: 'Travel Comfort', items: [] },
+  { name: 'Snacks & Drinks', items: [] },
+  { name: 'Entertainment', items: [] },
+  { name: 'Work or Personal Items', items: [] },
+  { name: 'Weather / Activity Gear', items: [] },
+  { name: 'Laundry & Organization', items: [] },
+  { name: 'Emergency / Backup Items', items: [] },
 ]
 
 function bagEmoji(bag: string) {
