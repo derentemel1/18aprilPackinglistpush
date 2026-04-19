@@ -70,6 +70,12 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
   const [view, setView] = useState<View>({ type: 'list' })
   const [saving, setSaving] = useState(false)
 
+  // Inline traveler form state
+  const [showTravelerForm, setShowTravelerForm] = useState(false)
+  const [travelerNickname, setTravelerNickname] = useState('')
+  const [travelerStatus, setTravelerStatus] = useState<'baby' | 'minor' | 'adult'>('adult')
+  const [savingTraveler, setSavingTraveler] = useState(false)
+
   // Form state
   const [formName, setFormName] = useState('')
   const [formCdcLink, setFormCdcLink] = useState('')
@@ -227,6 +233,27 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
     await supabase.from('journeys').delete().eq('id', id)
   }
 
+  async function handleAddTraveler(e: React.FormEvent) {
+    e.preventDefault()
+    if (!travelerNickname.trim() || user === 'guest') return
+    setSavingTraveler(true)
+    const { data } = await supabase.from('travelers').insert({
+      nickname: travelerNickname.trim(),
+      status: travelerStatus,
+      emoji: '🙂',
+      position: travelers.length,
+      user_id: (user as User).id,
+    }).select().single()
+    if (data) {
+      setTravelers(prev => [...prev, data])
+      setFormTravelerIds(prev => [...prev, data.id])
+    }
+    setTravelerNickname('')
+    setTravelerStatus('adult')
+    setShowTravelerForm(false)
+    setSavingTraveler(false)
+  }
+
   function updateSegment(tempId: string, field: keyof SegmentDraft, value: string) {
     setFormSegments(prev => prev.map(s => s.tempId === tempId ? { ...s, [field]: value } : s))
   }
@@ -312,59 +339,84 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
           </div>
 
           {/* Travelers + bag allowance */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Travelers & Baggage</p>
-            {travelers.length === 0 ? (
-              <p className="text-slate-400 text-sm">Add travelers in the Travelers tab first.</p>
-            ) : (
-              <div className="space-y-3">
-                {travelers.map(t => {
-                  const selected = formTravelerIds.includes(t.id)
-                  const availableBags = BAG_OPTIONS.filter(b => b !== 'Diaper Bag' || t.status === 'baby')
-                  const selectedBags = formTravelerBags[t.id] ?? []
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-4 space-y-3">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Travelers & Baggage</p>
 
-                  return (
-                    <div key={t.id}>
-                      {/* Traveler toggle */}
-                      <button
-                        type="button"
-                        onClick={() => toggleTraveler(t.id)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border transition-colors ${
-                          selected ? 'border-teal-400 bg-teal-50' : 'border-slate-200 bg-white'
-                        }`}
-                      >
-                        <span className="text-2xl">{t.emoji}</span>
-                        <span className="text-sm font-medium text-slate-700">{t.nickname}</span>
-                        <span className="ml-auto text-xs text-slate-400 capitalize">{t.status}</span>
-                        {selected && <span className="text-teal-500">✓</span>}
-                      </button>
+            {travelers.map(t => {
+              const selected = formTravelerIds.includes(t.id)
+              const availableBags = BAG_OPTIONS.filter(b => b !== 'Diaper Bag' || t.status === 'baby')
+              const selectedBags = formTravelerBags[t.id] ?? []
+              const badgeStyle = t.status === 'baby' ? 'bg-rose-100 text-rose-500' : t.status === 'minor' ? 'bg-sky-100 text-sky-500' : 'bg-teal-100 text-teal-600'
+              const badgeLabel = t.status === 'baby' ? 'Baby' : t.status === 'minor' ? 'Kid' : 'Adult'
 
-                      {/* Bag toggles — only shown when traveler is selected */}
-                      {selected && (
-                        <div className="mt-2 ml-3 pl-3 border-l-2 border-teal-200">
-                          <p className="text-xs text-slate-500 mb-1.5">{t.nickname}'s baggage allowance</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {availableBags.map(bag => (
-                              <button
-                                key={bag}
-                                type="button"
-                                onClick={() => toggleBag(t.id, bag)}
-                                className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
-                                  selectedBags.includes(bag)
-                                    ? 'bg-teal-500 text-white border-transparent'
-                                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-                                }`}
-                              >
-                                {bag}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+              return (
+                <div key={t.id}>
+                  <button
+                    type="button"
+                    onClick={() => toggleTraveler(t.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border transition-colors ${
+                      selected ? 'border-teal-400 bg-teal-50' : 'border-slate-200 bg-white'
+                    }`}
+                  >
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${badgeStyle}`}>{badgeLabel}</span>
+                    <span className="text-sm font-medium text-slate-700">{t.nickname}</span>
+                    {selected && <span className="ml-auto text-teal-500">✓</span>}
+                  </button>
+
+                  {selected && (
+                    <div className="mt-2 ml-3 pl-3 border-l-2 border-teal-200">
+                      <p className="text-xs text-slate-500 mb-1.5">{t.nickname}'s baggage allowance</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {availableBags.map(bag => (
+                          <button key={bag} type="button" onClick={() => toggleBag(t.id, bag)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                              selectedBags.includes(bag) ? 'bg-teal-500 text-white border-transparent' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                            }`}>
+                            {bag}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  )
-                })}
-              </div>
+                  )}
+                </div>
+              )
+            })}
+
+            {showTravelerForm ? (
+              <form onSubmit={handleAddTraveler} className="border border-slate-200 rounded-xl px-3 py-3 space-y-3 bg-slate-50">
+                <input
+                  autoFocus
+                  value={travelerNickname}
+                  onChange={e => setTravelerNickname(e.target.value)}
+                  placeholder="Nickname (e.g. Ayla, Dad)"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-white"
+                />
+                <div className="flex gap-2">
+                  {(['baby', 'minor', 'adult'] as const).map(s => (
+                    <button key={s} type="button" onClick={() => setTravelerStatus(s)}
+                      className={`flex-1 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
+                        travelerStatus === s ? 'bg-teal-500 text-white border-transparent' : 'bg-white text-slate-600 border-slate-200'
+                      }`}>
+                      {s === 'baby' ? 'Baby' : s === 'minor' ? 'Kid' : 'Adult'}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" disabled={savingTraveler}
+                    className="flex-1 py-2 rounded-xl bg-teal-500 text-white text-xs font-semibold disabled:opacity-40">
+                    {savingTraveler ? 'Adding…' : 'Add traveler'}
+                  </button>
+                  <button type="button" onClick={() => { setShowTravelerForm(false); setTravelerNickname('') }}
+                    className="px-3 py-2 rounded-xl border border-slate-200 text-slate-500 text-xs">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <button type="button" onClick={() => setShowTravelerForm(true)}
+                className="w-full py-2.5 text-xs text-teal-500 border border-dashed border-teal-200 rounded-xl bg-white hover:bg-teal-50 transition-colors">
+                ＋ New traveler
+              </button>
             )}
           </div>
 
@@ -462,7 +514,11 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
               <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
                 <div>
                   <p className="font-semibold text-slate-800">{j.name}</p>
-                  <div className="flex gap-1 mt-0.5">{assigned.map(t => <span key={t.id} className="text-lg">{t.emoji}</span>)}</div>
+                  <div className="flex gap-1 mt-0.5 flex-wrap">{assigned.map(t => {
+                    const s = t.status === 'baby' ? 'bg-rose-100 text-rose-500' : t.status === 'minor' ? 'bg-sky-100 text-sky-500' : 'bg-teal-100 text-teal-600'
+                    const l = t.status === 'baby' ? 'Baby' : t.status === 'minor' ? 'Kid' : 'Adult'
+                    return <span key={t.id} className={`text-xs font-semibold px-2 py-0.5 rounded-full ${s}`}>{l} · {t.nickname}</span>
+                  })}</div>
                 </div>
                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                   <button onClick={() => openEdit(j)} className="text-slate-400 hover:text-teal-500 text-sm">Edit</button>

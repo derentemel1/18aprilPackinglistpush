@@ -3,17 +3,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import AuthScreen from './components/AuthScreen'
-import TravelersScreen from './components/screens/TravelersScreen'
 import JourneysScreen from './components/screens/JourneysScreen'
 import type { User } from '@supabase/supabase-js'
-
-type Tab = 'journeys' | 'travelers'
 
 const LOCAL_AUTH_KEY = 'packing-guest'
 
 export default function Page() {
   const [user, setUser] = useState<User | null | 'guest'>(null)
-  const [tab, setTab] = useState<Tab>('journeys')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -53,8 +49,7 @@ export default function Page() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100">
-      {tab === 'journeys' && <JourneysScreen user={user} />}
-      {tab === 'travelers' && <TravelersScreen user={user} />}
+      <JourneysScreen user={user} />
 
       {/* Sign out — top right corner */}
       <div className="fixed top-3 right-4 z-30">
@@ -62,25 +57,6 @@ export default function Page() {
           Sign out
         </button>
       </div>
-
-      {/* Bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex z-20">
-        {([
-          { id: 'journeys', emoji: '🗺️', label: 'Journeys' },
-          { id: 'travelers', emoji: '👤', label: 'Travelers' },
-        ] as { id: Tab; emoji: string; label: string }[]).map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`flex-1 py-3 flex flex-col items-center gap-0.5 text-xs font-medium transition-colors ${
-              tab === t.id ? 'text-teal-600' : 'text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            <span className="text-xl">{t.emoji}</span>
-            {t.label}
-          </button>
-        ))}
-      </nav>
     </div>
   )
 }
