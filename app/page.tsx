@@ -240,12 +240,12 @@ export default function Page() {
         </div>
 
         {/* Bag filter */}
-        <div className="flex gap-2 mt-2 overflow-x-auto pb-1">
+        <div className="flex flex-wrap gap-2 mt-2">
           {(['ALL', ...BAGS] as BagFilter[]).map(b => (
             <button
               key={b}
               onClick={() => setBagFilter(b)}
-              className={`flex-shrink-0 py-1.5 px-3 rounded-xl text-xs font-semibold transition-colors border ${
+              className={`py-1.5 px-3 rounded-xl text-xs font-semibold transition-colors border ${
                 bagFilter === b
                   ? 'bg-violet-500 text-white border-transparent'
                   : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
