@@ -1,4 +1,4 @@
-const CACHE = 'packing-v1'
+const CACHE = 'packing-v2'
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/'])))
@@ -18,6 +18,7 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return
   const url = new URL(e.request.url)
   if (!url.protocol.startsWith('http')) return
+  if (url.hostname.includes('supabase.co')) return
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) {
