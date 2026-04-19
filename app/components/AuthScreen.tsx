@@ -41,9 +41,7 @@ export default function AuthScreen({ onSuccess }: { onSuccess: () => void }) {
       <div className="w-full max-w-sm bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden">
         {/* Top banner */}
         <div className="bg-teal-500 px-6 pt-8 pb-6 text-center">
-          <img src="/logo.png" alt="App logo" className="w-24 h-24 mx-auto mb-3 rounded-2xl object-cover" />
-          <h1 className="text-2xl font-bold text-white tracking-tight">Vietnam 2026</h1>
-          <p className="text-teal-100 text-sm mt-1">Family Packing List</p>
+          <img src="/logo.png" alt="App logo" className="w-48 h-48 mx-auto rounded-2xl object-cover" />
         </div>
 
         {/* Tabs */}
