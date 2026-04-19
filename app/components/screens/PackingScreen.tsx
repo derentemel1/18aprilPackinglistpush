@@ -339,28 +339,88 @@ export default function PackingScreen({
 
         {/* List */}
         <div className="px-4 pt-4 space-y-4">
-          {visibleCategories.length === 0 && !addingCategory && (
-            <p className="text-center text-slate-400 text-sm py-8">
-              {bagFilter !== 'ALL' ? 'No items in this bag.' : 'No categories yet. Add one below.'}
-            </p>
-          )}
 
-          {visibleCategories.map(cat => (
-            <CategorySection
-              key={cat.id}
-              category={cat}
-              items={getVisibleItems(cat.id)}
-              checked={checked}
-              ownerLabel={getCategoryOwner(cat)}
-              bags={bags}
-              readOnly={isMaster}
-              onToggle={toggle}
-              onBagChange={handleBagChange}
-              onDeleteItem={handleDeleteItem}
-              onAddItem={handleAddItem}
-              onDeleteCategory={handleDeleteCategory}
-            />
-          ))}
+          {/* Master: always group by bag */}
+          {isMaster ? (() => {
+            const filteredBags = bagFilter === 'ALL' ? bags : bags.filter(b => b === bagFilter)
+            const bagSections = filteredBags.map(bagName => ({
+              bagName,
+              items: items.filter(i => i.bag === bagName),
+            }))
+            const unassigned = bagFilter === 'ALL' ? items.filter(i => !i.bag) : []
+            const allSections = [
+              ...bagSections,
+              ...(unassigned.length > 0 ? [{ bagName: null, items: unassigned }] : []),
+            ]
+
+            if (allSections.every(s => s.items.length === 0)) return (
+              <p className="text-center text-slate-400 text-sm py-8">No items yet.</p>
+            )
+
+            return allSections.filter(s => s.items.length > 0).map(({ bagName, items: bagItems }) => {
+              const packedCount = bagItems.filter(i => checked.has(i.id)).length
+              return (
+                <div key={bagName ?? '__unassigned'} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+                    <span className="text-sm font-semibold text-slate-700">
+                      {bagName ? `${bagEmoji(bagName)} ${bagName}` : '📦 Unassigned'}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-400">{packedCount}/{bagItems.length}</span>
+                  </div>
+                  <ul className="divide-y divide-slate-50">
+                    {bagItems.map(item => {
+                      const cat = categories.find(c => c.id === item.category_id)
+                      const traveler = journeyTravelers.find(t => t.id === cat?.traveler_id)
+                      return (
+                        <li
+                          key={item.id}
+                          onClick={() => toggle(item.id)}
+                          className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors"
+                        >
+                          <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                            checked.has(item.id) ? 'bg-teal-500 border-teal-500' : 'border-slate-300'
+                          }`}>
+                            {checked.has(item.id) && <span className="text-white text-[9px] font-bold">✓</span>}
+                          </span>
+                          <span className={`flex-1 text-sm transition-colors ${checked.has(item.id) ? 'line-through text-slate-300' : 'text-slate-700'}`}>
+                            {item.name}
+                          </span>
+                          <span className="text-xs text-slate-400 text-right whitespace-nowrap">
+                            {traveler && <span>{traveler.emoji} </span>}
+                            {cat?.name}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              )
+            })
+          })() : (
+            <>
+              {visibleCategories.length === 0 && !addingCategory && (
+                <p className="text-center text-slate-400 text-sm py-8">
+                  {bagFilter !== 'ALL' ? 'No items in this bag.' : 'No categories yet. Add one below.'}
+                </p>
+              )}
+              {visibleCategories.map(cat => (
+                <CategorySection
+                  key={cat.id}
+                  category={cat}
+                  items={getVisibleItems(cat.id)}
+                  checked={checked}
+                  ownerLabel={getCategoryOwner(cat)}
+                  bags={bags}
+                  readOnly={isMaster}
+                  onToggle={toggle}
+                  onBagChange={handleBagChange}
+                  onDeleteItem={handleDeleteItem}
+                  onAddItem={handleAddItem}
+                  onDeleteCategory={handleDeleteCategory}
+                />
+              ))}
+            </>
+          )}
 
           {/* Add category — only for individual traveler lists */}
           {!isMaster && (
