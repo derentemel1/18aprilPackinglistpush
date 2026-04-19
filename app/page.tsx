@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import AuthScreen from './components/AuthScreen'
 import PackingScreen from './components/screens/PackingScreen'
 import TravelersScreen from './components/screens/TravelersScreen'
+import JourneysScreen from './components/screens/JourneysScreen'
 import type { User } from '@supabase/supabase-js'
 import type { AppTab } from './types'
 
@@ -55,12 +56,14 @@ export default function Page() {
       {/* Active screen */}
       {tab === 'packing' && <PackingScreen user={user} onSignOut={handleSignOut} />}
       {tab === 'travelers' && <TravelersScreen user={user} />}
+      {tab === 'journeys' && <JourneysScreen user={user} />}
 
       {/* Bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex z-20">
         {([
           { id: 'packing', emoji: '🧳', label: 'Packing' },
           { id: 'travelers', emoji: '👤', label: 'Travelers' },
+          { id: 'journeys', emoji: '🗺️', label: 'Journeys' },
         ] as { id: AppTab; emoji: string; label: string }[]).map(t => (
           <button
             key={t.id}

@@ -1,0 +1,502 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { supabase } from '../../../lib/supabase'
+import type { Journey, FlightSegment, Traveler } from '../../types'
+import type { User } from '@supabase/supabase-js'
+
+const US_AIRPORTS = new Set([
+  'JFK','LAX','ORD','ATL','DFW','DEN','SFO','SEA','MIA','BOS',
+  'IAH','MCO','PHX','EWR','MSP','DTW','PHL','LGA','FLL','CLT',
+  'IAD','SLC','BWI','SAN','MDW','HNL','TPA','PDX','STL','BNA',
+  'OAK','AUS','MCI','RDU','SMF','SJC','DAL','CVG','IND','PIT',
+])
+
+function minutesBetween(from: string, to: string) {
+  return Math.round((new Date(to).getTime() - new Date(from).getTime()) / 60000)
+}
+
+function formatDuration(minutes: number) {
+  const h = Math.floor(Math.abs(minutes) / 60)
+  const m = Math.abs(minutes) % 60
+  return h > 0 ? `${h}h ${m}m` : `${m}m`
+}
+
+interface SegmentDraft {
+  tempId: string
+  departure_airport: string
+  arrival_airport: string
+  departure_time: string
+  arrival_time: string
+  airline: string
+  flight_number: string
+  baggage_url: string
+  infant_baggage_url: string
+}
+
+function emptySegment(): SegmentDraft {
+  return {
+    tempId: Math.random().toString(36).slice(2),
+    departure_airport: '',
+    arrival_airport: '',
+    departure_time: '',
+    arrival_time: '',
+    airline: '',
+    flight_number: '',
+    baggage_url: '',
+    infant_baggage_url: '',
+  }
+}
+
+interface JourneyData {
+  travelers: string[]
+  segments: FlightSegment[]
+}
+
+export default function JourneysScreen({ user }: { user: User | 'guest' }) {
+  const [journeys, setJourneys] = useState<Journey[]>([])
+  const [travelers, setTravelers] = useState<Traveler[]>([])
+  const [journeyData, setJourneyData] = useState<Record<string, JourneyData>>({})
+  const [loading, setLoading] = useState(true)
+  const [view, setView] = useState<'list' | 'form'>('list')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  // Form state
+  const [formName, setFormName] = useState('')
+  const [formCdcLink, setFormCdcLink] = useState('')
+  const [formTravelerIds, setFormTravelerIds] = useState<string[]>([])
+  const [formSegments, setFormSegments] = useState<SegmentDraft[]>([emptySegment()])
+
+  useEffect(() => {
+    if (user === 'guest') { setLoading(false); return }
+    loadAll()
+  }, [user])
+
+  async function loadAll() {
+    const uid = (user as User).id
+    const [{ data: js }, { data: ts }] = await Promise.all([
+      supabase.from('journeys').select('*').eq('owner_id', uid).order('created_at', { ascending: false }),
+      supabase.from('travelers').select('*').eq('user_id', uid).order('position'),
+    ])
+    setJourneys(js ?? [])
+    setTravelers(ts ?? [])
+
+    if (js && js.length > 0) {
+      const ids = js.map(j => j.id)
+      const [{ data: jt }, { data: segs }] = await Promise.all([
+        supabase.from('journey_travelers').select('*').in('journey_id', ids),
+        supabase.from('flight_segments').select('*').in('journey_id', ids).order('position'),
+      ])
+      const data: Record<string, JourneyData> = {}
+      ids.forEach(id => {
+        data[id] = {
+          travelers: jt?.filter(r => r.journey_id === id).map(r => r.traveler_id) ?? [],
+          segments: segs?.filter(s => s.journey_id === id) ?? [],
+        }
+      })
+      setJourneyData(data)
+    }
+    setLoading(false)
+  }
+
+  function openAdd() {
+    setFormName('')
+    setFormCdcLink('')
+    setFormTravelerIds([])
+    setFormSegments([emptySegment()])
+    setEditingId(null)
+    setView('form')
+  }
+
+  function openEdit(j: Journey) {
+    const data = journeyData[j.id]
+    setFormName(j.name)
+    setFormCdcLink(j.cdc_link ?? '')
+    setFormTravelerIds(data?.travelers ?? [])
+    setFormSegments(
+      data?.segments.length
+        ? data.segments.map(s => ({
+            tempId: s.id,
+            departure_airport: s.departure_airport,
+            arrival_airport: s.arrival_airport,
+            departure_time: s.departure_time.slice(0, 16),
+            arrival_time: s.arrival_time.slice(0, 16),
+            airline: s.airline,
+            flight_number: s.flight_number ?? '',
+            baggage_url: s.baggage_url ?? '',
+            infant_baggage_url: s.infant_baggage_url ?? '',
+          }))
+        : [emptySegment()]
+    )
+    setEditingId(j.id)
+    setView('form')
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    if (!formName.trim() || user === 'guest') return
+    setSaving(true)
+    const uid = (user as User).id
+    const validSegs = formSegments.filter(s =>
+      s.departure_airport && s.arrival_airport && s.departure_time && s.arrival_time && s.airline
+    )
+
+    try {
+      let journeyId = editingId
+      if (editingId) {
+        await supabase.from('journeys').update({ name: formName.trim(), cdc_link: formCdcLink || null }).eq('id', editingId)
+        await supabase.from('journey_travelers').delete().eq('journey_id', editingId)
+        await supabase.from('flight_segments').delete().eq('journey_id', editingId)
+      } else {
+        const { data: newJ } = await supabase
+          .from('journeys')
+          .insert({ name: formName.trim(), cdc_link: formCdcLink || null, owner_id: uid })
+          .select().single()
+        if (!newJ) return
+        journeyId = newJ.id
+      }
+
+      if (formTravelerIds.length > 0) {
+        await supabase.from('journey_travelers').insert(
+          formTravelerIds.map(tid => ({ journey_id: journeyId, traveler_id: tid }))
+        )
+      }
+      if (validSegs.length > 0) {
+        await supabase.from('flight_segments').insert(
+          validSegs.map((s, i) => ({
+            journey_id: journeyId,
+            position: i,
+            departure_airport: s.departure_airport.toUpperCase(),
+            arrival_airport: s.arrival_airport.toUpperCase(),
+            departure_time: s.departure_time,
+            arrival_time: s.arrival_time,
+            airline: s.airline,
+            flight_number: s.flight_number || null,
+            baggage_url: s.baggage_url || null,
+            infant_baggage_url: s.infant_baggage_url || null,
+          }))
+        )
+      }
+      await loadAll()
+      setView('list')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this journey?')) return
+    setJourneys(prev => prev.filter(j => j.id !== id))
+    await supabase.from('journeys').delete().eq('id', id)
+  }
+
+  function toggleTraveler(id: string) {
+    setFormTravelerIds(prev =>
+      prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]
+    )
+  }
+
+  function updateSegment(tempId: string, field: keyof SegmentDraft, value: string) {
+    setFormSegments(prev => prev.map(s => s.tempId === tempId ? { ...s, [field]: value } : s))
+  }
+
+  const hasBabyInForm = formTravelerIds.some(id => travelers.find(t => t.id === id)?.status === 'baby')
+
+  if (loading) return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-teal-400 border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
+  if (user === 'guest') return (
+    <div className="flex-1 flex items-center justify-center px-6 text-center">
+      <p className="text-4xl mb-3">🗺️</p>
+    </div>
+  )
+
+  // ── Form view ─────────────────────────────────────────────────────────────
+  if (view === 'form') return (
+    <div className="flex-1 overflow-y-auto pb-24">
+      <div className="max-w-lg mx-auto px-4 pt-6">
+        <div className="flex items-center gap-3 mb-6">
+          <button onClick={() => setView('list')} className="text-slate-400 hover:text-slate-600 text-sm">← Back</button>
+          <h2 className="text-lg font-bold text-slate-800">{editingId ? 'Edit Journey' : 'New Journey'}</h2>
+        </div>
+
+        <form onSubmit={handleSave} className="space-y-5">
+          {/* Basic info */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-4 space-y-3">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Details</p>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">Journey name</label>
+              <input
+                value={formName}
+                onChange={e => setFormName(e.target.value)}
+                placeholder="e.g. Vietnam 2026"
+                required
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">CDC destination page (optional)</label>
+              <input
+                value={formCdcLink}
+                onChange={e => setFormCdcLink(e.target.value)}
+                placeholder="https://wwwnc.cdc.gov/travel/..."
+                type="url"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50"
+              />
+            </div>
+          </div>
+
+          {/* Travelers */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-4">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Travelers</p>
+            {travelers.length === 0 ? (
+              <p className="text-slate-400 text-sm">Add travelers in the Travelers tab first.</p>
+            ) : (
+              <div className="space-y-2">
+                {travelers.map(t => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => toggleTraveler(t.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border transition-colors ${
+                      formTravelerIds.includes(t.id)
+                        ? 'border-teal-400 bg-teal-50'
+                        : 'border-slate-200 bg-white'
+                    }`}
+                  >
+                    <span className="text-2xl">{t.emoji}</span>
+                    <span className="text-sm font-medium text-slate-700">{t.nickname}</span>
+                    <span className="ml-auto text-xs text-slate-400 capitalize">{t.status}</span>
+                    {formTravelerIds.includes(t.id) && <span className="text-teal-500">✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Flight segments */}
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-1">Flight Segments</p>
+            <p className="text-xs text-slate-400 px-1">Enter times in local airport time.</p>
+
+            {formSegments.map((seg, i) => (
+              <div key={seg.tempId} className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-slate-500">Segment {i + 1}</p>
+                  {formSegments.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setFormSegments(prev => prev.filter(s => s.tempId !== seg.tempId))}
+                      className="text-slate-300 hover:text-red-400 text-lg leading-none"
+                    >×</button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: 'From (IATA)', field: 'departure_airport' as const, placeholder: 'SGN' },
+                    { label: 'To (IATA)', field: 'arrival_airport' as const, placeholder: 'DXB' },
+                  ].map(({ label, field, placeholder }) => (
+                    <div key={field}>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">{label}</label>
+                      <input
+                        value={seg[field]}
+                        onChange={e => updateSegment(seg.tempId, field, e.target.value)}
+                        placeholder={placeholder}
+                        maxLength={3}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50 uppercase"
+                      />
+                    </div>
+                  ))}
+                  {[
+                    { label: 'Departs', field: 'departure_time' as const },
+                    { label: 'Arrives', field: 'arrival_time' as const },
+                  ].map(({ label, field }) => (
+                    <div key={field}>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">{label}</label>
+                      <input
+                        type="datetime-local"
+                        value={seg[field]}
+                        onChange={e => updateSegment(seg.tempId, field, e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs outline-none focus:border-teal-400 bg-slate-50"
+                      />
+                    </div>
+                  ))}
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Airline</label>
+                    <input
+                      value={seg.airline}
+                      onChange={e => updateSegment(seg.tempId, 'airline', e.target.value)}
+                      placeholder="Emirates"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Flight # (optional)</label>
+                    <input
+                      value={seg.flight_number}
+                      onChange={e => updateSegment(seg.tempId, 'flight_number', e.target.value)}
+                      placeholder="EK392"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">🧳 Baggage policy URL (optional)</label>
+                  <input
+                    value={seg.baggage_url}
+                    onChange={e => updateSegment(seg.tempId, 'baggage_url', e.target.value)}
+                    placeholder="https://..."
+                    type="url"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50"
+                  />
+                </div>
+
+                {hasBabyInForm && (
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">👶 Infant baggage policy URL (optional)</label>
+                    <input
+                      value={seg.infant_baggage_url}
+                      onChange={e => updateSegment(seg.tempId, 'infant_baggage_url', e.target.value)}
+                      placeholder="https://..."
+                      type="url"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50"
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={() => setFormSegments(prev => [...prev, emptySegment()])}
+              className="w-full py-3 text-sm text-teal-500 border border-dashed border-teal-200 rounded-2xl bg-white hover:bg-teal-50 transition-colors"
+            >
+              ＋ Add flight segment
+            </button>
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full py-3 rounded-2xl bg-teal-500 text-white font-semibold text-sm hover:bg-teal-600 disabled:opacity-40 transition-colors"
+          >
+            {saving ? 'Saving…' : editingId ? 'Save changes' : 'Create journey'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+
+  // ── List view ─────────────────────────────────────────────────────────────
+  return (
+    <div className="flex-1 overflow-y-auto pb-24">
+      <div className="max-w-lg mx-auto px-4 pt-6 space-y-3">
+        <h2 className="text-lg font-bold text-slate-800 mb-4">Journeys</h2>
+
+        {journeys.length === 0 && (
+          <p className="text-center text-slate-400 text-sm py-8">No journeys yet.</p>
+        )}
+
+        {journeys.map(j => {
+          const data = journeyData[j.id] ?? { travelers: [], segments: [] }
+          const segs = data.segments
+          const assigned = data.travelers
+            .map(id => travelers.find(t => t.id === id))
+            .filter(Boolean) as Traveler[]
+          const hasBaby = assigned.some(t => t.status === 'baby')
+
+          const airports = segs.length > 0
+            ? [segs[0].departure_airport, ...segs.map(s => s.arrival_airport)].join(' → ')
+            : null
+
+          const totalMins = segs.length > 0
+            ? minutesBetween(segs[0].departure_time, segs[segs.length - 1].arrival_time)
+            : 0
+
+          const layovers = segs.slice(1).map((seg, i) => {
+            const prev = segs[i]
+            const mins = minutesBetween(prev.arrival_time, seg.departure_time)
+            const isUS = US_AIRPORTS.has(seg.departure_airport)
+            const prevIsUS = US_AIRPORTS.has(prev.departure_airport)
+            return { airport: seg.departure_airport, mins, needsImmigration: isUS && !prevIsUS }
+          })
+
+          const airlineLinks = segs.reduce<typeof segs>((acc, s) => {
+            if (!acc.find(a => a.airline === s.airline)) acc.push(s)
+            return acc
+          }, [])
+
+          return (
+            <div key={j.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-slate-800">{j.name}</p>
+                  <div className="flex gap-1 mt-0.5">
+                    {assigned.map(t => <span key={t.id} className="text-lg">{t.emoji}</span>)}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => openEdit(j)} className="text-slate-400 hover:text-teal-500 text-sm">Edit</button>
+                  <button onClick={() => handleDelete(j.id)} className="text-slate-300 hover:text-red-400 text-xl leading-none">×</button>
+                </div>
+              </div>
+
+              {segs.length > 0 && (
+                <div className="px-4 py-3 space-y-1 text-xs">
+                  <p className="font-semibold text-slate-700">✈️ {airports}</p>
+                  {totalMins > 0 && <p className="text-slate-500">⏱ Total: {formatDuration(totalMins)}</p>}
+
+                  {layovers.map((l, i) => (
+                    <div key={i}>
+                      <p className="text-slate-600">
+                        🛑 {l.airport}: {formatDuration(l.mins)}
+                        {l.mins < 60 && <span className="ml-1 text-red-500 font-semibold"> 🚨 Short Layover — move fast!</span>}
+                        {l.mins >= 60 && l.mins < 90 && <span className="ml-1 text-amber-500 font-semibold"> ⚠️ Tight connection</span>}
+                      </p>
+                      {l.needsImmigration && <p className="text-blue-600 font-semibold">🛂 US Immigration Required</p>}
+                    </div>
+                  ))}
+
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1">
+                    {airlineLinks.map(s => (
+                      <span key={s.airline} className="flex gap-2">
+                        {s.baggage_url && (
+                          <a href={s.baggage_url} target="_blank" rel="noopener noreferrer" className="text-teal-600 underline">
+                            🧳 {s.airline}
+                          </a>
+                        )}
+                        {hasBaby && s.infant_baggage_url && (
+                          <a href={s.infant_baggage_url} target="_blank" rel="noopener noreferrer" className="text-pink-600 underline">
+                            👶 {s.airline} infant
+                          </a>
+                        )}
+                      </span>
+                    ))}
+                    {j.cdc_link && (
+                      <a href={j.cdc_link} target="_blank" rel="noopener noreferrer" className="text-green-600 underline">
+                        🏥 CDC
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )
+        })}
+
+        <button
+          onClick={openAdd}
+          className="w-full py-3 text-sm text-teal-500 border border-dashed border-teal-200 rounded-2xl bg-white hover:bg-teal-50 transition-colors"
+        >
+          ＋ New journey
+        </button>
+      </div>
+    </div>
+  )
+}

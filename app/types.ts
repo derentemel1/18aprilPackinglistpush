@@ -3,7 +3,29 @@ export type PersonFilter = Person | 'ALL'
 export type Bag = string
 export type BagFilter = string
 export type TravelerStatus = 'baby' | 'minor' | 'adult'
-export type AppTab = 'packing' | 'travelers'
+export type AppTab = 'packing' | 'travelers' | 'journeys'
+
+export interface Journey {
+  id: string
+  owner_id: string
+  name: string
+  cdc_link: string | null
+  created_at: string
+}
+
+export interface FlightSegment {
+  id: string
+  journey_id: string
+  position: number
+  departure_airport: string
+  arrival_airport: string
+  departure_time: string
+  arrival_time: string
+  airline: string
+  flight_number: string | null
+  baggage_url: string | null
+  infant_baggage_url: string | null
+}
 
 export interface Category {
   id: string
