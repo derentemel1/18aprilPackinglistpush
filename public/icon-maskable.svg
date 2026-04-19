@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Full-bleed teal background (safe zone for maskable icons) -->
+  <rect width="512" height="512" fill="#0d9488"/>
+
+  <!-- Suitcase body — centered with extra padding for safe zone -->
+  <rect x="126" y="196" width="260" height="190" rx="20" fill="white"/>
+
+  <!-- Handle -->
+  <rect x="196" y="152" width="120" height="52" rx="14" fill="none" stroke="white" stroke-width="18"/>
+
+  <!-- Stripe -->
+  <rect x="126" y="280" width="260" height="28" fill="#99f6e4"/>
+
+  <!-- Clasp -->
+  <rect x="236" y="262" width="40" height="44" rx="6" fill="#0d9488"/>
+</svg>
