@@ -319,7 +319,7 @@ export default function PackingScreen({
               <button
                 key={b}
                 onClick={() => setBagFilter(b)}
-                className={`py-1.5 px-3 rounded-xl text-xs font-semibold transition-colors border ${
+                className={`py-1.5 px-3 rounded-xl text-xs font-semibold transition-colors border whitespace-normal break-words text-left max-w-[160px] ${
                   bagFilter === b ? 'bg-violet-500 text-white border-transparent' : 'bg-white text-slate-600 border-slate-200'
                 }`}
               >
