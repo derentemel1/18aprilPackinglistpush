@@ -60,11 +60,6 @@ const ADULT_MINOR_DEFAULTS: { name: string; items: string[] }[] = [
   { name: 'Emergency / Backup Items', items: [] },
 ]
 
-function bagEmoji(bag: string) {
-  if (bag.startsWith('Luggage')) return '🧳'
-  if (bag.startsWith('Carry')) return '✈️'
-  return '👜'
-}
 
 function generateBags(luggage: number, carryOn: number, personal: number): string[] {
   const bags: string[] = []
@@ -212,7 +207,6 @@ export default function PackingScreen({
   }
 
   async function handleDeleteItem(itemId: string) {
-    if (!confirm('Delete this item?')) return
     setItems(prev => prev.filter(i => i.id !== itemId))
     await supabase.from('items').delete().eq('id', itemId)
   }
@@ -237,7 +231,6 @@ export default function PackingScreen({
   }
 
   async function handleDeleteCategory(categoryId: string) {
-    if (!confirm('Delete this category and all its items?')) return
     setCategories(prev => prev.filter(c => c.id !== categoryId))
     setItems(prev => prev.filter(i => i.category_id !== categoryId))
     await supabase.from('categories').delete().eq('id', categoryId)
@@ -299,7 +292,7 @@ export default function PackingScreen({
               <button onClick={onBack} className="text-slate-500 hover:text-slate-700 text-sm">←</button>
               <div>
                 <h1 className="text-base font-bold text-slate-800">
-                  {isMaster ? '🗂 See All Bags' : `${travelerNickname}`}
+                  {isMaster ? 'See All Bags' : `${travelerNickname}`}
                 </h1>
                 <p className="text-xs text-slate-500">{journeyName}</p>
               </div>
@@ -323,7 +316,7 @@ export default function PackingScreen({
                   bagFilter === b ? 'bg-violet-500 text-white border-transparent' : 'bg-white text-slate-600 border-slate-200'
                 }`}
               >
-                {b === 'ALL' ? '🗂 All bags' : `${bagEmoji(b)} ${b}`}
+                {b === 'ALL' ? 'All bags' : b}
               </button>
             ))}
           </div>
@@ -386,7 +379,7 @@ export default function PackingScreen({
                 <div key={bagName ?? '__unassigned'} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-100">
                     <span className="text-sm font-semibold text-slate-700">
-                      {bagName ? `${bagEmoji(bagName)} ${bagName}` : '📦 Unassigned'}
+                      {bagName ?? 'Unassigned'}
                     </span>
                     <span className="text-xs font-semibold text-slate-400">{packedCount}/{bagItems.length}</span>
                   </div>
@@ -472,7 +465,6 @@ export default function PackingScreen({
           {/* Reset */}
           <button
             onClick={async () => {
-              if (!confirm('Reset all visible items?')) return
               const ids = allVisibleItems.map(i => i.id)
               const next = new Set(checked)
               ids.forEach(id => next.delete(id))

@@ -228,7 +228,6 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Delete this journey?')) return
     setJourneys(prev => prev.filter(j => j.id !== id))
     await supabase.from('journeys').delete().eq('id', id)
   }
@@ -268,7 +267,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
 
   if (user === 'guest') return (
     <div className="flex-1 flex items-center justify-center px-6 text-center">
-      <div><p className="text-4xl mb-3">🗺️</p><p className="text-slate-500 text-sm">Log in to manage journeys</p></div>
+      <p className="text-slate-500 text-sm">Log in to manage journeys</p>
     </div>
   )
 
@@ -462,13 +461,13 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 mb-1">🧳 Baggage policy URL (optional)</label>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Baggage policy URL (optional)</label>
                   <input value={seg.baggage_url} onChange={e => updateSegment(seg.tempId, 'baggage_url', e.target.value)} placeholder="https://..." type="url"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50" />
                 </div>
                 {hasBabyInForm && (
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">👶 Infant baggage policy URL (optional)</label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Infant baggage policy URL (optional)</label>
                     <input value={seg.infant_baggage_url} onChange={e => updateSegment(seg.tempId, 'infant_baggage_url', e.target.value)} placeholder="https://..." type="url"
                       className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50" />
                   </div>
@@ -527,7 +526,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
               </div>
               {airports && (
                 <div className="px-4 py-2 text-xs text-slate-500">
-                  <p>✈️ {airports}{totalMins > 0 ? ` · ⏱ ${formatDuration(totalMins)}` : ''}</p>
+                  <p>{airports}{totalMins > 0 ? ` · ${formatDuration(totalMins)}` : ''}</p>
                 </div>
               )}
             </button>

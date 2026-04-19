@@ -124,16 +124,16 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
         {/* Flight summary */}
         {segments.length > 0 && (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 space-y-1.5 text-xs">
-            <p className="font-semibold text-slate-700 text-sm">✈️ {airports}</p>
-            {totalMins > 0 && <p className="text-slate-500">⏱ Total travel time: {formatDuration(totalMins)}</p>}
+            <p className="font-semibold text-slate-700 text-sm">{airports}</p>
+            {totalMins > 0 && <p className="text-slate-500">Total travel time: {formatDuration(totalMins)}</p>}
             {layovers.map((l, i) => (
               <div key={i}>
                 <p className="text-slate-600">
-                  🛑 {l.airport}: {formatDuration(l.mins)}
-                  {l.mins < 60 && <span className="ml-1 text-red-500 font-semibold">🚨 Short Layover — move fast!</span>}
-                  {l.mins >= 60 && l.mins < 90 && <span className="ml-1 text-amber-500 font-semibold">⚠️ Tight connection</span>}
+                  Layover {l.airport}: {formatDuration(l.mins)}
+                  {l.mins < 60 && <span className="ml-1 text-red-500 font-semibold">Short Layover — move fast!</span>}
+                  {l.mins >= 60 && l.mins < 90 && <span className="ml-1 text-amber-500 font-semibold">Tight connection</span>}
                 </p>
-                {l.needsImmigration && <p className="text-blue-600 font-semibold">🛂 US Immigration Required</p>}
+                {l.needsImmigration && <p className="text-blue-600 font-semibold">US Immigration Required</p>}
               </div>
             ))}
             <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1">
@@ -141,19 +141,19 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
                 <span key={s.airline} className="flex gap-2">
                   {s.baggage_url && (
                     <a href={s.baggage_url} target="_blank" rel="noopener noreferrer" className="text-teal-600 underline">
-                      🧳 {s.airline}
+                      {s.airline} Baggage
                     </a>
                   )}
                   {hasBaby && s.infant_baggage_url && (
                     <a href={s.infant_baggage_url} target="_blank" rel="noopener noreferrer" className="text-pink-600 underline">
-                      👶 {s.airline} infant
+                      {s.airline} Infant Baggage
                     </a>
                   )}
                 </span>
               ))}
               {journey.cdc_link && (
                 <a href={journey.cdc_link} target="_blank" rel="noopener noreferrer" className="text-green-600 underline">
-                  🏥 CDC
+                  CDC
                 </a>
               )}
             </div>
@@ -170,7 +170,6 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
         >
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className="text-xl">📋</span>
               <div>
                 <p className="font-semibold text-slate-800 text-sm">See All Bags</p>
                 <p className="text-xs text-slate-400">All travelers · {journey.name}</p>

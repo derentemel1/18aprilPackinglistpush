@@ -77,7 +77,6 @@ export default function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
       <div className={`w-full max-w-sm bg-white rounded-3xl shadow-lg border border-slate-100 overflow-hidden ${shake ? 'animate-shake' : ''}`}>
         {/* Top banner */}
         <div className="bg-teal-500 px-6 pt-8 pb-6 text-center">
-          <div className="text-5xl mb-2">✈️</div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Vietnam 2026</h1>
           <p className="text-teal-100 text-sm mt-1">Family Packing List</p>
         </div>
@@ -126,7 +125,7 @@ export default function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
               disabled:opacity-40 disabled:cursor-not-allowed
               hover:bg-teal-600 active:bg-teal-700 transition-colors"
           >
-            {loading ? 'Checking…' : "Let's Pack! 🧳"}
+            {loading ? 'Checking…' : "Let's Pack!"}
           </button>
         </div>
       </div>

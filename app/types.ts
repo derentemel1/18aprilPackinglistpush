@@ -60,8 +60,8 @@ export interface JourneyTravelerBag {
 }
 
 export const BAG_OPTIONS = [
-  'Checked Luggage 1',
-  'Checked Luggage 2',
+  'Checked Bag 1',
+  'Checked Bag 2',
   'Carry-On',
   'Personal Item',
   'Diaper Bag',

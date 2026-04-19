@@ -12,11 +12,6 @@ const BAG_COLORS = [
   'bg-teal-100 text-teal-700',
 ]
 
-function bagEmoji(bag: string) {
-  if (bag.startsWith('Luggage')) return '🧳'
-  if (bag.startsWith('Carry')) return '✈️'
-  return '👜'
-}
 
 function bagColor(bag: string, bags: string[]) {
   return BAG_COLORS[bags.indexOf(bag) % BAG_COLORS.length] ?? 'bg-slate-100 text-slate-500'
@@ -116,7 +111,7 @@ export default function CategorySection({
                 >
                   <option value="">— bag</option>
                   {bags.map(b => (
-                    <option key={b} value={b}>{bagEmoji(b)} {b}</option>
+                    <option key={b} value={b}>{b}</option>
                   ))}
                 </select>
 

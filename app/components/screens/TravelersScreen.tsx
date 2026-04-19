@@ -7,9 +7,9 @@ import type { Traveler, TravelerStatus } from '../../types'
 import type { User } from '@supabase/supabase-js'
 
 const STATUS_LABEL: Record<TravelerStatus, string> = {
-  baby: '👶 Baby',
-  minor: '🧒 Minor',
-  adult: '🙋 Grown-up',
+  baby: 'Baby',
+  minor: 'Kid',
+  adult: 'Adult',
 }
 
 const STATUS_COLOR: Record<TravelerStatus, string> = {
@@ -93,7 +93,6 @@ export default function TravelersScreen({ user }: { user: User | 'guest' }) {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Remove this traveler?')) return
     setTravelers(prev => prev.filter(t => t.id !== id))
     await supabase.from('travelers').delete().eq('id', id)
   }
@@ -107,7 +106,6 @@ export default function TravelersScreen({ user }: { user: User | 'guest' }) {
   if (user === 'guest') return (
     <div className="flex-1 flex items-center justify-center px-6 text-center">
       <div>
-        <p className="text-4xl mb-3">👤</p>
         <p className="text-slate-500 text-sm">Log in to manage travelers</p>
       </div>
     </div>
