@@ -68,14 +68,12 @@ export default function CategorySection({
           }`}>
             {catPacked}/{items.length}
           </span>
-          {!isGuest && (
-            <button
-              onClick={() => onDeleteCategory(category.id)}
-              className="text-slate-300 hover:text-red-400 text-xl leading-none transition-colors"
-            >
-              ×
-            </button>
-          )}
+          <button
+            onClick={() => onDeleteCategory(category.id)}
+            className="text-slate-300 hover:text-red-400 text-xl leading-none transition-colors"
+          >
+            ×
+          </button>
         </div>
       </div>
 
@@ -110,65 +108,55 @@ export default function CategorySection({
               </span>
 
               {/* Bag selector */}
-              {!isGuest ? (
-                <select
-                  value={item.bag ?? ''}
-                  onChange={e => onBagChange(item.id, (e.target.value as Bag) || null)}
-                  className={`text-xs rounded-full px-2 py-0.5 border-0 outline-none cursor-pointer max-w-[110px] ${
-                    item.bag ? BAG_COLOR[item.bag] : 'bg-slate-100 text-slate-400'
-                  }`}
-                >
-                  <option value="">— bag</option>
-                  {BAGS.map(b => (
-                    <option key={b} value={b}>{BAG_EMOJI[b]} {b}</option>
-                  ))}
-                </select>
-              ) : item.bag ? (
-                <span className={`text-xs rounded-full px-2 py-0.5 flex-shrink-0 ${BAG_COLOR[item.bag]}`}>
-                  {BAG_EMOJI[item.bag]} {item.bag}
-                </span>
-              ) : null}
+              <select
+                value={item.bag ?? ''}
+                onChange={e => onBagChange(item.id, (e.target.value as Bag) || null)}
+                className={`text-xs rounded-full px-2 py-0.5 border-0 outline-none cursor-pointer max-w-[110px] ${
+                  item.bag ? BAG_COLOR[item.bag] : 'bg-slate-100 text-slate-400'
+                }`}
+              >
+                <option value="">— bag</option>
+                {BAGS.map(b => (
+                  <option key={b} value={b}>{BAG_EMOJI[b]} {b}</option>
+                ))}
+              </select>
 
               {/* Delete */}
-              {!isGuest && (
-                <button
-                  onClick={() => onDeleteItem(item.id)}
-                  className="text-slate-300 hover:text-red-400 text-xl leading-none flex-shrink-0 transition-colors"
-                >
-                  ×
-                </button>
-              )}
+              <button
+                onClick={() => onDeleteItem(item.id)}
+                className="text-slate-300 hover:text-red-400 text-xl leading-none flex-shrink-0 transition-colors"
+              >
+                ×
+              </button>
             </li>
           )
         })}
 
         {/* Add item */}
-        {!isGuest && (
-          adding ? (
-            <li className="border-t border-slate-50">
-              <form onSubmit={handleAddItem} className="flex items-center gap-2 px-4 py-3">
-                <input
-                  autoFocus
-                  value={newItemName}
-                  onChange={e => setNewItemName(e.target.value)}
-                  placeholder="Item name…"
-                  className="flex-1 text-sm outline-none bg-transparent text-slate-700 placeholder-slate-300"
-                  onKeyDown={e => e.key === 'Escape' && setAdding(false)}
-                />
-                <button type="submit" className="text-teal-500 text-sm font-semibold">Add</button>
-                <button type="button" onClick={() => setAdding(false)} className="text-slate-400 text-sm">Cancel</button>
-              </form>
-            </li>
-          ) : (
-            <li className="border-t border-slate-50">
-              <button
-                onClick={() => setAdding(true)}
-                className="w-full px-4 py-3 text-left text-sm text-teal-500 hover:bg-slate-50 transition-colors"
-              >
-                ＋ Add item
-              </button>
-            </li>
-          )
+        {adding ? (
+          <li className="border-t border-slate-50">
+            <form onSubmit={handleAddItem} className="flex items-center gap-2 px-4 py-3">
+              <input
+                autoFocus
+                value={newItemName}
+                onChange={e => setNewItemName(e.target.value)}
+                placeholder="Item name…"
+                className="flex-1 text-sm outline-none bg-transparent text-slate-700 placeholder-slate-300"
+                onKeyDown={e => e.key === 'Escape' && setAdding(false)}
+              />
+              <button type="submit" className="text-teal-500 text-sm font-semibold">Add</button>
+              <button type="button" onClick={() => setAdding(false)} className="text-slate-400 text-sm">Cancel</button>
+            </form>
+          </li>
+        ) : (
+          <li className="border-t border-slate-50">
+            <button
+              onClick={() => setAdding(true)}
+              className="w-full px-4 py-3 text-left text-sm text-teal-500 hover:bg-slate-50 transition-colors"
+            >
+              ＋ Add item
+            </button>
+          </li>
         )}
       </ul>
     </section>

@@ -282,7 +282,7 @@ export default function Page() {
         ))}
 
         {/* Add category — only when viewing a specific person and all bags */}
-        {!isGuest && personFilter !== 'ALL' && bagFilter === 'ALL' && (
+        {personFilter !== 'ALL' && bagFilter === 'ALL' && (
           addingCategory ? (
             <form onSubmit={handleAddCategory} className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 flex gap-2">
               <input
