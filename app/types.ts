@@ -52,3 +52,17 @@ export interface Traveler {
   status: TravelerStatus
   position: number
 }
+
+export interface JourneyTravelerBag {
+  journey_id: string
+  traveler_id: string
+  bag_type: string
+}
+
+export const BAG_OPTIONS = [
+  'Checked Luggage 1',
+  'Checked Luggage 2',
+  'Carry-On',
+  'Personal Item',
+  'Diaper Bag',
+] as const

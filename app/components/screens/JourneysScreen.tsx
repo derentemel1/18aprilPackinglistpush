@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import JourneyDetail from '../JourneyDetail'
 import PackingScreen from './PackingScreen'
-import type { Journey, FlightSegment, Traveler } from '../../types'
+import type { Journey, FlightSegment, Traveler, JourneyTravelerBag } from '../../types'
+import { BAG_OPTIONS } from '../../types'
 import type { User } from '@supabase/supabase-js'
 
 const US_AIRPORTS = new Set([
@@ -23,16 +24,21 @@ function formatDuration(minutes: number) {
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
+function buildBagsMap(rows: JourneyTravelerBag[]): Record<string, string[]> {
+  const map: Record<string, string[]> = {}
+  rows.forEach(r => {
+    if (!map[r.traveler_id]) map[r.traveler_id] = []
+    map[r.traveler_id].push(r.bag_type)
+  })
+  return map
+}
+
 interface SegmentDraft {
   tempId: string
-  departure_airport: string
-  arrival_airport: string
-  departure_time: string
-  arrival_time: string
-  airline: string
-  flight_number: string
-  baggage_url: string
-  infant_baggage_url: string
+  departure_airport: string; arrival_airport: string
+  departure_time: string; arrival_time: string
+  airline: string; flight_number: string
+  baggage_url: string; infant_baggage_url: string
 }
 
 function emptySegment(): SegmentDraft {
@@ -44,7 +50,11 @@ function emptySegment(): SegmentDraft {
   }
 }
 
-interface JourneyData { travelers: string[]; segments: FlightSegment[] }
+interface JourneyData {
+  travelers: string[]
+  segments: FlightSegment[]
+  travelerBags: Record<string, string[]>
+}
 
 type View =
   | { type: 'list' }
@@ -64,6 +74,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
   const [formName, setFormName] = useState('')
   const [formCdcLink, setFormCdcLink] = useState('')
   const [formTravelerIds, setFormTravelerIds] = useState<string[]>([])
+  const [formTravelerBags, setFormTravelerBags] = useState<Record<string, string[]>>({})
   const [formSegments, setFormSegments] = useState<SegmentDraft[]>([emptySegment()])
 
   useEffect(() => {
@@ -82,15 +93,17 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
 
     if (js && js.length > 0) {
       const ids = js.map(j => j.id)
-      const [{ data: jt }, { data: segs }] = await Promise.all([
+      const [{ data: jt }, { data: segs }, { data: jtb }] = await Promise.all([
         supabase.from('journey_travelers').select('*').in('journey_id', ids),
         supabase.from('flight_segments').select('*').in('journey_id', ids).order('position'),
+        supabase.from('journey_traveler_bags').select('*').in('journey_id', ids),
       ])
       const data: Record<string, JourneyData> = {}
       ids.forEach(id => {
         data[id] = {
           travelers: jt?.filter(r => r.journey_id === id).map(r => r.traveler_id) ?? [],
           segments: segs?.filter(s => s.journey_id === id) ?? [],
+          travelerBags: buildBagsMap(jtb?.filter(b => b.journey_id === id) ?? []),
         }
       })
       setJourneyData(data)
@@ -99,7 +112,9 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
   }
 
   function openAdd() {
-    setFormName(''); setFormCdcLink(''); setFormTravelerIds([]); setFormSegments([emptySegment()])
+    setFormName(''); setFormCdcLink('')
+    setFormTravelerIds([]); setFormTravelerBags({})
+    setFormSegments([emptySegment()])
     setView({ type: 'form', editingId: null })
   }
 
@@ -107,6 +122,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
     const data = journeyData[j.id]
     setFormName(j.name); setFormCdcLink(j.cdc_link ?? '')
     setFormTravelerIds(data?.travelers ?? [])
+    setFormTravelerBags(data?.travelerBags ?? {})
     setFormSegments(
       data?.segments.length
         ? data.segments.map(s => ({
@@ -119,6 +135,27 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
         : [emptySegment()]
     )
     setView({ type: 'form', editingId: j.id })
+  }
+
+  function toggleTraveler(tid: string) {
+    setFormTravelerIds(prev => {
+      if (prev.includes(tid)) {
+        // Remove traveler and their bags
+        setFormTravelerBags(b => { const next = { ...b }; delete next[tid]; return next })
+        return prev.filter(x => x !== tid)
+      }
+      return [...prev, tid]
+    })
+  }
+
+  function toggleBag(tid: string, bag: string) {
+    setFormTravelerBags(prev => {
+      const current = prev[tid] ?? []
+      return {
+        ...prev,
+        [tid]: current.includes(bag) ? current.filter(b => b !== bag) : [...current, bag],
+      }
+    })
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -135,8 +172,11 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
       let journeyId = editingId
       if (editingId) {
         await supabase.from('journeys').update({ name: formName.trim(), cdc_link: formCdcLink || null }).eq('id', editingId)
-        await supabase.from('journey_travelers').delete().eq('journey_id', editingId)
-        await supabase.from('flight_segments').delete().eq('journey_id', editingId)
+        await Promise.all([
+          supabase.from('journey_travelers').delete().eq('journey_id', editingId),
+          supabase.from('flight_segments').delete().eq('journey_id', editingId),
+          supabase.from('journey_traveler_bags').delete().eq('journey_id', editingId),
+        ])
       } else {
         const { data: newJ } = await supabase
           .from('journeys').insert({ name: formName.trim(), cdc_link: formCdcLink || null, owner_id: uid })
@@ -144,18 +184,36 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
         if (!newJ) return
         journeyId = newJ.id
       }
+
+      const ops: Promise<any>[] = []
+
       if (formTravelerIds.length > 0) {
-        await supabase.from('journey_travelers').insert(formTravelerIds.map(tid => ({ journey_id: journeyId, traveler_id: tid })))
+        ops.push(supabase.from('journey_travelers').insert(
+          formTravelerIds.map(tid => ({ journey_id: journeyId, traveler_id: tid }))
+        ))
       }
+
+      const bagRows = Object.entries(formTravelerBags).flatMap(([tid, bags]) =>
+        bags.map(bag => ({ journey_id: journeyId, traveler_id: tid, bag_type: bag }))
+      )
+      if (bagRows.length > 0) {
+        ops.push(supabase.from('journey_traveler_bags').insert(bagRows))
+      }
+
       if (validSegs.length > 0) {
-        await supabase.from('flight_segments').insert(validSegs.map((s, i) => ({
-          journey_id: journeyId, position: i,
-          departure_airport: s.departure_airport.toUpperCase(), arrival_airport: s.arrival_airport.toUpperCase(),
-          departure_time: s.departure_time, arrival_time: s.arrival_time,
-          airline: s.airline, flight_number: s.flight_number || null,
-          baggage_url: s.baggage_url || null, infant_baggage_url: s.infant_baggage_url || null,
-        })))
+        ops.push(supabase.from('flight_segments').insert(
+          validSegs.map((s, i) => ({
+            journey_id: journeyId, position: i,
+            departure_airport: s.departure_airport.toUpperCase(),
+            arrival_airport: s.arrival_airport.toUpperCase(),
+            departure_time: s.departure_time, arrival_time: s.arrival_time,
+            airline: s.airline, flight_number: s.flight_number || null,
+            baggage_url: s.baggage_url || null, infant_baggage_url: s.infant_baggage_url || null,
+          }))
+        ))
       }
+
+      await Promise.all(ops)
       await loadAll()
       setView({ type: 'list' })
     } finally {
@@ -190,7 +248,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
   // ── Packing view ───────────────────────────────────────────────────────────
   if (view.type === 'packing') {
     const journey = journeys.find(j => j.id === view.journeyId)!
-    const data = journeyData[view.journeyId] ?? { travelers: [], segments: [] }
+    const data = journeyData[view.journeyId] ?? { travelers: [], segments: [], travelerBags: {} }
     const assignedTravelers = data.travelers.map(id => travelers.find(t => t.id === id)).filter(Boolean) as Traveler[]
     const traveler = view.travelerId ? travelers.find(t => t.id === view.travelerId) : null
 
@@ -203,6 +261,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
         travelerEmoji={traveler?.emoji}
         travelerNickname={traveler?.nickname}
         journeyTravelers={assignedTravelers}
+        travelerBags={data.travelerBags}
         onBack={() => setView({ type: 'detail', journeyId: view.journeyId })}
       />
     )
@@ -211,7 +270,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
   // ── Detail view ────────────────────────────────────────────────────────────
   if (view.type === 'detail') {
     const journey = journeys.find(j => j.id === view.journeyId)!
-    const data = journeyData[view.journeyId] ?? { travelers: [], segments: [] }
+    const data = journeyData[view.journeyId] ?? { travelers: [], segments: [], travelerBags: {} }
     const assignedTravelers = data.travelers.map(id => travelers.find(t => t.id === id)).filter(Boolean) as Traveler[]
 
     return (
@@ -219,6 +278,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
         journey={journey}
         travelers={assignedTravelers}
         segments={data.segments}
+        travelerBags={data.travelerBags}
         user={user}
         onBack={() => setView({ type: 'list' })}
         onOpenPacking={(travelerId) => setView({ type: 'packing', journeyId: view.journeyId, travelerId })}
@@ -236,6 +296,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
         </div>
 
         <form onSubmit={handleSave} className="space-y-5">
+          {/* Basic info */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-4 space-y-3">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Details</p>
             <div>
@@ -250,25 +311,64 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
             </div>
           </div>
 
+          {/* Travelers + bag allowance */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-4">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Travelers</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Travelers & Baggage</p>
             {travelers.length === 0 ? (
               <p className="text-slate-400 text-sm">Add travelers in the Travelers tab first.</p>
             ) : (
-              <div className="space-y-2">
-                {travelers.map(t => (
-                  <button key={t.id} type="button" onClick={() => setFormTravelerIds(prev => prev.includes(t.id) ? prev.filter(x => x !== t.id) : [...prev, t.id])}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border transition-colors ${formTravelerIds.includes(t.id) ? 'border-teal-400 bg-teal-50' : 'border-slate-200 bg-white'}`}>
-                    <span className="text-2xl">{t.emoji}</span>
-                    <span className="text-sm font-medium text-slate-700">{t.nickname}</span>
-                    <span className="ml-auto text-xs text-slate-400 capitalize">{t.status}</span>
-                    {formTravelerIds.includes(t.id) && <span className="text-teal-500">✓</span>}
-                  </button>
-                ))}
+              <div className="space-y-3">
+                {travelers.map(t => {
+                  const selected = formTravelerIds.includes(t.id)
+                  const availableBags = BAG_OPTIONS.filter(b => b !== 'Diaper Bag' || t.status === 'baby')
+                  const selectedBags = formTravelerBags[t.id] ?? []
+
+                  return (
+                    <div key={t.id}>
+                      {/* Traveler toggle */}
+                      <button
+                        type="button"
+                        onClick={() => toggleTraveler(t.id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border transition-colors ${
+                          selected ? 'border-teal-400 bg-teal-50' : 'border-slate-200 bg-white'
+                        }`}
+                      >
+                        <span className="text-2xl">{t.emoji}</span>
+                        <span className="text-sm font-medium text-slate-700">{t.nickname}</span>
+                        <span className="ml-auto text-xs text-slate-400 capitalize">{t.status}</span>
+                        {selected && <span className="text-teal-500">✓</span>}
+                      </button>
+
+                      {/* Bag toggles — only shown when traveler is selected */}
+                      {selected && (
+                        <div className="mt-2 ml-3 pl-3 border-l-2 border-teal-200">
+                          <p className="text-xs text-slate-500 mb-1.5">{t.nickname}'s baggage allowance</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {availableBags.map(bag => (
+                              <button
+                                key={bag}
+                                type="button"
+                                onClick={() => toggleBag(t.id, bag)}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                                  selectedBags.includes(bag)
+                                    ? 'bg-teal-500 text-white border-transparent'
+                                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                                }`}
+                              >
+                                {bag}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
 
+          {/* Flight segments */}
           <div className="space-y-3">
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-1">Flight Segments</p>
             <p className="text-xs text-slate-400 px-1">Enter times in local airport time.</p>
@@ -350,7 +450,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
         )}
 
         {journeys.map(j => {
-          const data = journeyData[j.id] ?? { travelers: [], segments: [] }
+          const data = journeyData[j.id] ?? { travelers: [], segments: [], travelerBags: {} }
           const segs = data.segments
           const assigned = data.travelers.map(id => travelers.find(t => t.id === id)).filter(Boolean) as Traveler[]
           const airports = segs.length > 0 ? [segs[0].departure_airport, ...segs.map(s => s.arrival_airport)].join(' → ') : null
@@ -370,7 +470,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
                 </div>
               </div>
               {airports && (
-                <div className="px-4 py-2 text-xs text-slate-500 space-y-0.5">
+                <div className="px-4 py-2 text-xs text-slate-500">
                   <p>✈️ {airports}{totalMins > 0 ? ` · ⏱ ${formatDuration(totalMins)}` : ''}</p>
                 </div>
               )}

@@ -27,12 +27,13 @@ interface Props {
   journey: Journey
   travelers: Traveler[]
   segments: FlightSegment[]
+  travelerBags: Record<string, string[]>
   user: User | 'guest'
   onBack: () => void
   onOpenPacking: (travelerId: string | null) => void
 }
 
-export default function JourneyDetail({ journey, travelers, segments, user, onBack, onOpenPacking }: Props) {
+export default function JourneyDetail({ journey, travelers, segments, travelerBags, user, onBack, onOpenPacking }: Props) {
   const [progress, setProgress] = useState<Record<string, Progress>>({})
   const [masterProgress, setMasterProgress] = useState<Progress>({ packed: 0, total: 0 })
 

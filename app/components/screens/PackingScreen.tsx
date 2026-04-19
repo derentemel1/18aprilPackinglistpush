@@ -6,6 +6,13 @@ import CategorySection from '../CategorySection'
 import type { User } from '@supabase/supabase-js'
 import type { Category, Item, Bag, BagFilter, Traveler } from '../../types'
 
+function namedBags(travelerId: string | null, travelerNickname: string | undefined, journeyTravelers: Traveler[], travelerBags: Record<string, string[]>): string[] {
+  if (travelerId !== null) {
+    return (travelerBags[travelerId] ?? []).map(b => `${travelerNickname}'s ${b}`)
+  }
+  return journeyTravelers.flatMap(t => (travelerBags[t.id] ?? []).map(b => `${t.nickname}'s ${b}`))
+}
+
 const LOCAL_CHECKED_KEY = 'packing-checked-v2'
 
 function bagEmoji(bag: string) {
@@ -39,12 +46,13 @@ interface Props {
   travelerEmoji?: string
   travelerNickname?: string
   journeyTravelers: Traveler[]
+  travelerBags: Record<string, string[]>
   onBack: () => void
 }
 
 export default function PackingScreen({
   user, journeyId, journeyName, travelerId,
-  travelerEmoji, travelerNickname, journeyTravelers, onBack,
+  travelerEmoji, travelerNickname, journeyTravelers, travelerBags, onBack,
 }: Props) {
   const [categories, setCategories] = useState<Category[]>([])
   const [items, setItems] = useState<Item[]>([])
@@ -53,15 +61,10 @@ export default function PackingScreen({
   const [ready, setReady] = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCatName, setNewCatName] = useState('')
-  const [luggageCount, setLuggageCount] = useState(() => loadCount('packing-luggage', 2))
-  const [carryOnCount, setCarryOnCount] = useState(() => loadCount('packing-carryon', 1))
-  const [personalCount, setPersonalCount] = useState(() => loadCount('packing-personal', 1))
 
   const isMaster = travelerId === null
   const isGuest = user === 'guest'
-  const bags = generateBags(luggageCount, carryOnCount, personalCount)
-
-  function saveCount(key: string, n: number) { localStorage.setItem(key, String(n)) }
+  const bags = namedBags(travelerId, travelerNickname, journeyTravelers, travelerBags)
 
   const loadData = useCallback(async () => {
     setReady(false)
@@ -199,24 +202,7 @@ export default function PackingScreen({
                 <p className="text-xs text-slate-500">{journeyName}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-semibold text-slate-500">{packed}/{total}</span>
-              {/* Bag allowance */}
-              <div className="flex gap-2">
-                {([
-                  { emoji: '🧳', count: luggageCount, set: setLuggageCount, key: 'packing-luggage', max: 4 },
-                  { emoji: '✈️', count: carryOnCount, set: setCarryOnCount, key: 'packing-carryon', max: 3 },
-                  { emoji: '👜', count: personalCount, set: setPersonalCount, key: 'packing-personal', max: 3 },
-                ] as const).map(({ emoji, count, set, key, max }) => (
-                  <div key={key} className="flex items-center gap-0.5">
-                    <span className="text-xs">{emoji}</span>
-                    <button onClick={() => { const n = Math.max(0, count - 1); set(n); saveCount(key, n) }} className="w-4 h-4 text-xs rounded-full bg-slate-200 hover:bg-slate-400 flex items-center justify-center leading-none">−</button>
-                    <span className="text-xs font-semibold text-slate-700 w-3 text-center">{count}</span>
-                    <button onClick={() => { const n = Math.min(max, count + 1); set(n); saveCount(key, n) }} className="w-4 h-4 text-xs rounded-full bg-slate-200 hover:bg-slate-400 flex items-center justify-center leading-none">+</button>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <span className="text-sm font-semibold text-slate-500">{packed}/{total}</span>
           </div>
 
           {/* Progress */}
