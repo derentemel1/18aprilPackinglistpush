@@ -2,17 +2,17 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Packing List',
-  description: 'Family packing list for Vietnam trip',
+  title: 'FlyBabyReady',
+  description: 'Family travel packing list',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Packing List',
+    title: 'FlyBabyReady',
   },
   icons: {
-    icon: '/icon.svg',
-    apple: '/icon.svg',
+    icon: '/logo.png',
+    apple: '/logo.png',
   },
 }
 
