@@ -206,6 +206,13 @@ export default function PackingScreen({
     if (data) setItems(prev => [...prev, data])
   }
 
+  async function handleAddItems(categoryId: string, names: string[]) {
+    const startPos = items.filter(i => i.category_id === categoryId).length
+    const rows = names.map((name, i) => ({ category_id: categoryId, name, position: startPos + i }))
+    const { data } = await supabase.from('items').insert(rows).select()
+    if (data) setItems(prev => [...prev, ...data])
+  }
+
   async function handleDeleteItem(itemId: string) {
     setItems(prev => prev.filter(i => i.id !== itemId))
     await supabase.from('items').delete().eq('id', itemId)
@@ -431,6 +438,7 @@ export default function PackingScreen({
                   onBagChange={handleBagChange}
                   onDeleteItem={handleDeleteItem}
                   onAddItem={handleAddItem}
+                  onAddItems={handleAddItems}
                   onDeleteCategory={handleDeleteCategory}
                 />
               ))}

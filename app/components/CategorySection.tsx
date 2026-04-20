@@ -27,13 +27,21 @@ interface Props {
   onBagChange: (itemId: string, bag: Bag | null) => void
   onDeleteItem: (itemId: string) => void
   onAddItem: (categoryId: string, name: string) => void
+  onAddItems: (categoryId: string, names: string[]) => void
   onDeleteCategory: (categoryId: string) => void
   readOnly?: boolean
 }
 
+function parsePastedList(text: string): string[] {
+  return text
+    .split(/\r?\n/)
+    .map(line => line.replace(/^[\s•\-\*·\u2022\u2023\u25E6\u2043]+/, '').trim())
+    .filter(line => line.length > 0)
+}
+
 export default function CategorySection({
   category, items, checked, ownerLabel, bags, readOnly,
-  onToggle, onBagChange, onDeleteItem, onAddItem, onDeleteCategory,
+  onToggle, onBagChange, onDeleteItem, onAddItem, onAddItems, onDeleteCategory,
 }: Props) {
   const catPacked = items.filter(item => checked.has(item.id)).length
   const allPacked = items.length > 0 && catPacked === items.length
@@ -47,6 +55,17 @@ export default function CategorySection({
     onAddItem(category.id, newItemName.trim())
     setNewItemName('')
     setAdding(false)
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const text = e.clipboardData.getData('text')
+    const lines = parsePastedList(text)
+    if (lines.length > 1) {
+      e.preventDefault()
+      onAddItems(category.id, lines)
+      setNewItemName('')
+      setAdding(false)
+    }
   }
 
   return (
@@ -133,7 +152,8 @@ export default function CategorySection({
                     autoFocus
                     value={newItemName}
                     onChange={e => setNewItemName(e.target.value)}
-                    placeholder="Item name…"
+                    onPaste={handlePaste}
+                    placeholder="Item name… or paste a list"
                     className="flex-1 text-sm outline-none bg-transparent text-slate-700 placeholder-slate-300"
                     onKeyDown={e => e.key === 'Escape' && setAdding(false)}
                   />
