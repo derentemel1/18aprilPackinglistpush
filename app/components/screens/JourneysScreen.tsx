@@ -522,7 +522,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
                 </div>
                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                   <button onClick={() => openEdit(j)} className="text-slate-400 hover:text-teal-500 text-sm px-3 py-3 -my-3">Edit</button>
-                  <button onClick={() => handleDelete(j.id)} className="text-slate-300 hover:text-red-400 text-xl leading-none p-2 -mr-1">×</button>
+                  <button onClick={() => handleDelete(j.id)} className="text-slate-300 hover:text-red-400 text-3xl leading-none p-2 -mr-1">×</button>
                 </div>
               </div>
               {airports && (

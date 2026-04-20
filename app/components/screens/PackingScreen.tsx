@@ -313,19 +313,41 @@ export default function PackingScreen({
           </div>
           <p className="text-right text-xs font-bold mt-1 text-teal-600">{pct}%</p>
 
-          {/* Bag filter */}
-          <div className="flex flex-wrap gap-2 mt-2">
-            {(['ALL', ...bags]).map(b => (
-              <button
-                key={b}
-                onClick={() => setBagFilter(b)}
-                className={`py-2.5 px-3 rounded-xl text-xs font-semibold transition-colors border whitespace-normal break-words text-left max-w-[160px] ${
-                  bagFilter === b ? 'bg-violet-500 text-white border-transparent' : 'bg-white text-slate-600 border-slate-200'
-                }`}
-              >
-                {b === 'ALL' ? 'All bags' : b}
-              </button>
-            ))}
+          {/* Bag filter — grouped by traveler */}
+          <div className="mt-2 space-y-2">
+            <button
+              onClick={() => setBagFilter('ALL')}
+              className={`py-2 px-4 rounded-xl text-sm font-semibold transition-colors border ${
+                bagFilter === 'ALL' ? 'bg-violet-500 text-white border-transparent' : 'bg-white text-slate-600 border-slate-200'
+              }`}
+            >
+              All bags
+            </button>
+            {journeyTravelers.map(t => {
+              const tBags = travelerBags[t.id] ?? []
+              if (tBags.length === 0) return null
+              return (
+                <div key={t.id} className="flex items-start gap-2">
+                  <span className="text-xs font-semibold text-slate-400 pt-2.5 w-14 flex-shrink-0 truncate">{t.nickname}</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {tBags.map(bagType => {
+                      const fullName = `${t.nickname}'s ${bagType}`
+                      return (
+                        <button
+                          key={fullName}
+                          onClick={() => setBagFilter(fullName)}
+                          className={`py-2 px-3 rounded-xl text-xs font-semibold transition-colors border ${
+                            bagFilter === fullName ? 'bg-violet-500 text-white border-transparent' : 'bg-white text-slate-600 border-slate-200'
+                          }`}
+                        >
+                          {bagType}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
           </div>
 
           {/* Search */}

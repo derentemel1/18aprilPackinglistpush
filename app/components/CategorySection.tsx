@@ -88,7 +88,7 @@ export default function CategorySection({
           {!readOnly && (
             <button
               onClick={e => { e.stopPropagation(); onDeleteCategory(category.id) }}
-              className="text-slate-300 hover:text-red-400 text-xl leading-none transition-colors p-2 -mr-1"
+              className="text-slate-300 hover:text-red-400 text-3xl leading-none transition-colors p-2 -mr-1"
             >×</button>
           )}
           <span className="text-slate-400 text-xs">{collapsed ? '▶' : '▼'}</span>
@@ -137,7 +137,7 @@ export default function CategorySection({
                 {!readOnly && (
                   <button
                     onClick={() => onDeleteItem(item.id)}
-                    className="text-slate-300 hover:text-red-400 text-xl leading-none flex-shrink-0 transition-colors p-2 -mr-2"
+                    className="text-slate-300 hover:text-red-400 text-3xl leading-none flex-shrink-0 transition-colors p-2 -mr-2"
                   >×</button>
                 )}
               </li>

@@ -71,7 +71,7 @@ export default function InstallPrompt() {
               )}
             </div>
           </div>
-          <button onClick={dismiss} className="text-slate-300 hover:text-slate-500 text-xl leading-none flex-shrink-0">×</button>
+          <button onClick={dismiss} className="text-slate-300 hover:text-slate-500 text-3xl leading-none flex-shrink-0 p-2 -mr-2">×</button>
         </div>
 
         {!isIOS && (
