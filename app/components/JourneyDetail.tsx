@@ -21,6 +21,14 @@ function formatDuration(minutes: number) {
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
 interface Progress { packed: number; total: number }
 
 interface Props {
@@ -96,15 +104,8 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
     ? minutesBetween(segments[0].departure_time, segments[segments.length - 1].arrival_time)
     : 0
 
-  const layovers = segments.slice(1).map((seg, i) => {
-    const prev = segments[i]
-    const mins = minutesBetween(prev.arrival_time, seg.departure_time)
-    const isUS = US_AIRPORTS.has(seg.departure_airport)
-    const prevIsUS = US_AIRPORTS.has(prev.departure_airport)
-    return { airport: seg.departure_airport, mins, needsImmigration: isUS && !prevIsUS }
-  })
-
   const hasBaby = travelers.some(t => t.status === 'baby')
+
   const airlineLinks = segments.reduce<FlightSegment[]>((acc, s) => {
     if (!acc.find(a => a.airline === s.airline)) acc.push(s)
     return acc
@@ -127,55 +128,143 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
           <button onClick={onEdit} className="text-sm text-teal-500 hover:text-teal-700 font-medium transition-colors px-3 py-2 -mr-2">Edit</button>
         </div>
 
-        {/* Flight info — compact summary, expandable */}
+        {/* Flight itinerary */}
         {segments.length > 0 && (
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+
+            {/* Summary row — tap to expand */}
             <button
               onClick={() => setFlightExpanded(e => !e)}
               className="w-full flex items-center justify-between px-4 py-3 text-left"
             >
               <div>
-                <p className="text-sm font-semibold text-slate-700">{airports}</p>
-                {totalMins > 0 && <p className="text-xs text-slate-400">{formatDuration(totalMins)} total travel time</p>}
+                <p className="text-base font-semibold text-slate-700">{airports}</p>
+                {totalMins > 0 && (
+                  <p className="text-sm text-slate-400">{formatDuration(totalMins)} total · {segments.length} flight{segments.length > 1 ? 's' : ''}</p>
+                )}
               </div>
-              <span className="text-xs text-slate-400 ml-2">{flightExpanded ? '▲' : '▼'}</span>
+              <span className="text-sm text-slate-400 ml-2">{flightExpanded ? '▲' : '▼'}</span>
             </button>
 
             {flightExpanded && (
-              <div className="px-4 pb-4 space-y-2 text-xs border-t border-slate-50 pt-3">
-                {layovers.map((l, i) => (
-                  <div key={i}>
-                    <p className="text-slate-600">
-                      Layover {l.airport}: {formatDuration(l.mins)}
-                      {l.mins < 60 && <span className="ml-1 text-red-500 font-semibold">Short Layover — move fast!</span>}
-                      {l.mins >= 60 && l.mins < 90 && <span className="ml-1 text-amber-500 font-semibold">Tight connection</span>}
-                    </p>
-                    {l.needsImmigration && <p className="text-blue-600 font-semibold">US Immigration Required</p>}
+              <div className="border-t border-slate-100">
+
+                {/* Per-segment rows */}
+                {segments.map((seg, i) => {
+                  const durationMins = minutesBetween(seg.departure_time, seg.arrival_time)
+                  const layoverMins = i > 0 ? minutesBetween(segments[i - 1].arrival_time, seg.departure_time) : null
+                  const isUS = US_AIRPORTS.has(seg.departure_airport)
+                  const prevIsUS = i > 0 && US_AIRPORTS.has(segments[i - 1].departure_airport)
+                  const needsImmigration = layoverMins !== null && isUS && !prevIsUS
+
+                  return (
+                    <div key={seg.id}>
+                      {/* Layover badge between segments */}
+                      {layoverMins !== null && (
+                        <div className={`px-4 py-2 flex items-center gap-2 border-t border-slate-50 ${
+                          layoverMins < 60 ? 'bg-red-50' : layoverMins < 90 ? 'bg-amber-50' : 'bg-slate-50'
+                        }`}>
+                          <span className={`text-xs font-semibold ${
+                            layoverMins < 60 ? 'text-red-600' : layoverMins < 90 ? 'text-amber-600' : 'text-slate-500'
+                          }`}>
+                            Layover {seg.departure_airport} · {formatDuration(layoverMins)}
+                            {layoverMins < 60 && ' — Short, move fast!'}
+                            {layoverMins >= 60 && layoverMins < 90 && ' — Tight connection'}
+                          </span>
+                          {needsImmigration && (
+                            <span className="text-xs font-semibold text-blue-600 ml-1">· US Immigration required</span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Segment detail */}
+                      <div className="px-4 py-3 border-t border-slate-50">
+                        {/* Airline + flight number */}
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-semibold text-slate-700">
+                            {seg.airline}{seg.flight_number ? ` · ${seg.flight_number}` : ''}
+                          </span>
+                          <span className="text-sm text-slate-400">{formatDuration(durationMins)}</span>
+                        </div>
+
+                        {/* Route + times */}
+                        <div className="flex items-center gap-3">
+                          <div className="text-center">
+                            <p className="text-xl font-bold text-slate-800">{seg.departure_airport}</p>
+                            <p className="text-base font-semibold text-slate-600">{formatTime(seg.departure_time)}</p>
+                            <p className="text-xs text-slate-400">{formatDate(seg.departure_time)}</p>
+                          </div>
+                          <div className="flex-1 flex items-center gap-1">
+                            <div className="flex-1 h-px bg-slate-200" />
+                            <span className="text-slate-300 text-xs">✈</span>
+                            <div className="flex-1 h-px bg-slate-200" />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xl font-bold text-slate-800">{seg.arrival_airport}</p>
+                            <p className="text-base font-semibold text-slate-600">{formatTime(seg.arrival_time)}</p>
+                            <p className="text-xs text-slate-400">{formatDate(seg.arrival_time)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* Baggage links */}
+                {(airlineLinks.some(s => s.baggage_url || s.infant_baggage_url) || journey.cdc_link) && (
+                  <div className="px-4 py-3 border-t border-slate-100 flex flex-wrap gap-x-4 gap-y-2">
+                    {airlineLinks.map(s => (
+                      <span key={s.airline} className="flex flex-wrap gap-3">
+                        {s.baggage_url && (
+                          <a href={s.baggage_url} target="_blank" rel="noopener noreferrer"
+                            className="text-sm text-teal-600 underline">
+                            {s.airline} Baggage
+                          </a>
+                        )}
+                        {hasBaby && s.infant_baggage_url && (
+                          <a href={s.infant_baggage_url} target="_blank" rel="noopener noreferrer"
+                            className="text-sm text-pink-600 underline">
+                            {s.airline} Infant Baggage
+                          </a>
+                        )}
+                      </span>
+                    ))}
+                    {journey.cdc_link && (
+                      <a href={journey.cdc_link} target="_blank" rel="noopener noreferrer"
+                        className="text-sm text-green-600 underline">
+                        CDC Health Info
+                      </a>
+                    )}
                   </div>
-                ))}
-                <div className="flex flex-wrap gap-x-3 gap-y-1 pt-1">
-                  {airlineLinks.map(s => (
-                    <span key={s.airline} className="flex gap-2">
-                      {s.baggage_url && (
-                        <a href={s.baggage_url} target="_blank" rel="noopener noreferrer" className="text-teal-600 underline">
-                          {s.airline} Baggage
-                        </a>
-                      )}
-                      {hasBaby && s.infant_baggage_url && (
-                        <a href={s.infant_baggage_url} target="_blank" rel="noopener noreferrer" className="text-pink-600 underline">
-                          {s.airline} Infant Baggage
-                        </a>
-                      )}
-                    </span>
-                  ))}
-                  {journey.cdc_link && (
-                    <a href={journey.cdc_link} target="_blank" rel="noopener noreferrer" className="text-green-600 underline">
-                      CDC
-                    </a>
-                  )}
-                </div>
+                )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Traveler baggage allowances */}
+        {travelers.length > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 space-y-2">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Baggage Allowance</p>
+            {travelers.map(t => {
+              const bags = travelerBags[t.id] ?? []
+              return (
+                <div key={t.id} className="flex items-start gap-3">
+                  <div className="flex items-center gap-2 w-28 flex-shrink-0 pt-0.5">
+                    <StatusBadge status={t.status} />
+                    <span className="text-sm font-medium text-slate-700 truncate">{t.nickname}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {bags.length > 0
+                      ? bags.map(b => (
+                          <span key={b} className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium">{b}</span>
+                        ))
+                      : <span className="text-xs text-slate-300">No bags assigned</span>
+                    }
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
 
@@ -186,18 +275,18 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
         >
           <div className="flex items-center justify-between mb-2">
             <div>
-              <p className="font-semibold text-slate-800 text-sm">See All Bags</p>
-              <p className="text-xs text-slate-400">All travelers</p>
+              <p className="font-semibold text-slate-800 text-base">See All Bags</p>
+              <p className="text-sm text-slate-400">All travelers</p>
             </div>
-            <span className="text-sm font-semibold text-slate-500">{masterProgress.packed}/{masterProgress.total}</span>
+            <span className="text-base font-semibold text-slate-500">{masterProgress.packed}/{masterProgress.total}</span>
           </div>
-          <div className="w-full bg-slate-100 rounded-full h-1.5">
-            <div className="bg-teal-500 h-1.5 rounded-full transition-all" style={{ width: `${masterPct}%` }} />
+          <div className="w-full bg-slate-100 rounded-full h-2">
+            <div className="bg-teal-500 h-2 rounded-full transition-all" style={{ width: `${masterPct}%` }} />
           </div>
-          <p className="text-right text-xs font-bold text-teal-600 mt-0.5">{masterPct}%</p>
+          <p className="text-right text-sm font-bold text-teal-600 mt-1">{masterPct}%</p>
         </button>
 
-        {/* Per-traveler cards */}
+        {/* Per-traveler packing cards */}
         {travelers.map(t => {
           const p = progress[t.id] ?? { packed: 0, total: 0 }
           const pct = p.total > 0 ? Math.round((p.packed / p.total) * 100) : 0
@@ -210,14 +299,14 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <StatusBadge status={t.status} />
-                  <p className="font-semibold text-slate-800 text-sm">{t.nickname}'s Bags</p>
+                  <p className="font-semibold text-slate-800 text-base">{t.nickname}'s Bags</p>
                 </div>
-                <span className="text-sm font-semibold text-slate-500">{p.packed}/{p.total}</span>
+                <span className="text-base font-semibold text-slate-500">{p.packed}/{p.total}</span>
               </div>
-              <div className="w-full bg-slate-100 rounded-full h-1.5">
-                <div className="bg-teal-500 h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
+              <div className="w-full bg-slate-100 rounded-full h-2">
+                <div className="bg-teal-500 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
               </div>
-              <p className="text-right text-xs font-bold text-teal-600 mt-0.5">{pct}%</p>
+              <p className="text-right text-sm font-bold text-teal-600 mt-1">{pct}%</p>
             </button>
           )
         })}
