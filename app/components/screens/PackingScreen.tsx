@@ -385,10 +385,10 @@ export default function PackingScreen({
               return (
                 <div key={bagName ?? '__unassigned'} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-100">
-                    <span className="text-sm font-semibold text-slate-700">
+                    <span className="text-base font-semibold text-slate-700">
                       {bagName ?? 'Unassigned'}
                     </span>
-                    <span className="text-xs font-semibold text-slate-400">{packedCount}/{bagItems.length}</span>
+                    <span className="text-sm font-semibold text-slate-400">{packedCount}/{bagItems.length}</span>
                   </div>
                   <ul className="divide-y divide-slate-50">
                     {bagItems.map(item => {
@@ -400,12 +400,12 @@ export default function PackingScreen({
                           onClick={() => toggle(item.id)}
                           className="flex items-center gap-3 px-4 py-4 cursor-pointer tap-row transition-colors"
                         >
-                          <span className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                          <span className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
                             checked.has(item.id) ? 'bg-teal-500 border-teal-500' : 'border-slate-300'
                           }`}>
                             {checked.has(item.id) && <span className="text-white text-[9px] font-bold">✓</span>}
                           </span>
-                          <span className={`flex-1 text-sm transition-colors ${checked.has(item.id) ? 'line-through text-slate-300' : 'text-slate-700'}`}>
+                          <span className={`flex-1 text-base transition-colors ${checked.has(item.id) ? 'line-through text-slate-300' : 'text-slate-700'}`}>
                             {item.name}
                           </span>
                           {traveler && (

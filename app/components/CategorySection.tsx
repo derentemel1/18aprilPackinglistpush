@@ -77,7 +77,7 @@ export default function CategorySection({
       >
         <div>
           {ownerLabel && <p className="text-xs text-slate-400 mb-0.5">{ownerLabel}</p>}
-          <h2 className="font-semibold text-slate-700 text-sm">{category.name}</h2>
+          <h2 className="font-semibold text-slate-700 text-base">{category.name}</h2>
         </div>
         <div className="flex items-center gap-2">
           <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
@@ -106,7 +106,7 @@ export default function CategorySection({
               >
                 <button
                   onClick={() => onToggle(item.id)}
-                  className={`flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
+                  className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
                     done ? 'bg-teal-500 border-teal-500' : 'border-slate-300'
                   }`}
                 >
@@ -117,7 +117,7 @@ export default function CategorySection({
                   )}
                 </button>
 
-                <span className={`flex-1 text-sm leading-snug ${done ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                <span className={`flex-1 text-base leading-snug ${done ? 'line-through text-slate-400' : 'text-slate-700'}`}>
                   {item.name}
                 </span>
 
