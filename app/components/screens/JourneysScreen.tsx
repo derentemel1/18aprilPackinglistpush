@@ -517,7 +517,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
                   <div className="flex gap-1 mt-0.5 flex-wrap">{assigned.map(t => {
                     const s = t.status === 'baby' ? 'bg-rose-100 text-rose-500' : t.status === 'minor' ? 'bg-sky-100 text-sky-500' : 'bg-teal-100 text-teal-600'
                     const l = t.status === 'baby' ? 'Baby' : t.status === 'minor' ? 'Kid' : 'Adult'
-                    return <span key={t.id} className={`text-xs font-semibold px-2 py-0.5 rounded-full ${s}`}>{l} · {t.nickname}</span>
+                    return <span key={t.id} className={`text-xs font-semibold px-2 py-0.5 rounded-full ${s}`}>{t.nickname}</span>
                   })}</div>
                 </div>
                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
