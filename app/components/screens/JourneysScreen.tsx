@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import JourneyDetail from '../JourneyDetail'
 import PackingScreen from './PackingScreen'
+import AirportInput from '../AirportInput'
+import AirlineInput from '../AirlineInput'
+import { parseItinerary } from '../../../lib/parseItinerary'
 import type { Journey, FlightSegment, Traveler, JourneyTravelerBag } from '../../types'
 import { BAG_OPTIONS } from '../../types'
 import type { User } from '@supabase/supabase-js'
@@ -69,6 +72,8 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState<View>({ type: 'list' })
   const [saving, setSaving] = useState(false)
+  const [pasteOpen, setPasteOpen] = useState(false)
+  const [pasteText, setPasteText] = useState('')
 
   // Inline traveler form state
   const [showTravelerForm, setShowTravelerForm] = useState(false)
@@ -422,7 +427,53 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
 
           {/* Flight segments */}
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide px-1">Flight Segments</p>
+            <div className="flex items-center justify-between px-1">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Flight Segments</p>
+              <button type="button" onClick={() => setPasteOpen(p => !p)}
+                className="text-xs font-semibold text-teal-500 hover:text-teal-700 transition-colors">
+                {pasteOpen ? 'Cancel paste' : 'Paste itinerary'}
+              </button>
+            </div>
+
+            {pasteOpen && (
+              <div className="bg-teal-50 border border-teal-200 rounded-2xl px-4 py-4 space-y-3">
+                <p className="text-sm font-semibold text-teal-700">Paste your booking confirmation</p>
+                <p className="text-xs text-teal-600">Copy the text from your booking email and paste it below.</p>
+                <textarea
+                  autoFocus
+                  value={pasteText}
+                  onChange={e => setPasteText(e.target.value)}
+                  placeholder="Paste booking confirmation text here…"
+                  rows={6}
+                  className="w-full px-3 py-3 rounded-xl border border-teal-200 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-teal-400 bg-white resize-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const parsed = parseItinerary(pasteText)
+                    if (parsed.length > 0) {
+                      setFormSegments(parsed.map(s => ({
+                        tempId: Math.random().toString(36).slice(2),
+                        departure_airport: s.departure_airport,
+                        arrival_airport: s.arrival_airport,
+                        departure_time: s.departure_time,
+                        arrival_time: s.arrival_time,
+                        airline: s.airline,
+                        flight_number: s.flight_number,
+                        baggage_url: '',
+                        infant_baggage_url: '',
+                      })))
+                      setPasteOpen(false)
+                      setPasteText('')
+                    }
+                  }}
+                  className="w-full py-3 rounded-xl bg-teal-500 text-white text-sm font-semibold hover:bg-teal-600 transition-colors"
+                >
+                  Extract flights
+                </button>
+              </div>
+            )}
+
             <p className="text-xs text-slate-400 px-1">Enter times in local airport time.</p>
 
             {formSegments.map((seg, i) => (
@@ -435,14 +486,16 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  {([['From (IATA)', 'departure_airport', 'SGN'], ['To (IATA)', 'arrival_airport', 'DXB']] as const).map(([label, field, ph]) => (
-                    <div key={field}>
-                      <label className="block text-xs font-medium text-slate-500 mb-1">{label}</label>
-                      <input value={seg[field]} onChange={e => updateSegment(seg.tempId, field, e.target.value)}
-                        placeholder={ph} maxLength={3}
-                        className="w-full px-3 py-3 rounded-xl border border-slate-200 text-base outline-none focus:border-teal-400 bg-slate-50 uppercase" />
-                    </div>
-                  ))}
+                  <AirportInput
+                    label="From"
+                    value={seg.departure_airport}
+                    onChange={v => updateSegment(seg.tempId, 'departure_airport', v)}
+                  />
+                  <AirportInput
+                    label="To"
+                    value={seg.arrival_airport}
+                    onChange={v => updateSegment(seg.tempId, 'arrival_airport', v)}
+                  />
                   {([['Departs', 'departure_time'], ['Arrives', 'arrival_time']] as const).map(([label, field]) => (
                     <div key={field}>
                       <label className="block text-xs font-medium text-slate-500 mb-1">{label}</label>
@@ -450,11 +503,11 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
                         className="w-full px-3 py-3 rounded-xl border border-slate-200 text-base outline-none focus:border-teal-400 bg-slate-50" />
                     </div>
                   ))}
-                  <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">Airline</label>
-                    <input value={seg.airline} onChange={e => updateSegment(seg.tempId, 'airline', e.target.value)} placeholder="Emirates"
-                      className="w-full px-3 py-3 rounded-xl border border-slate-200 text-base outline-none focus:border-teal-400 bg-slate-50" />
-                  </div>
+                  <AirlineInput
+                    label="Airline"
+                    value={seg.airline}
+                    onChange={v => updateSegment(seg.tempId, 'airline', v)}
+                  />
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Flight # (optional)</label>
                     <input value={seg.flight_number} onChange={e => updateSegment(seg.tempId, 'flight_number', e.target.value)} placeholder="EK392"
