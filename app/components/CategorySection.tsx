@@ -88,7 +88,7 @@ export default function CategorySection({
           {!readOnly && (
             <button
               onClick={e => { e.stopPropagation(); onDeleteCategory(category.id) }}
-              className="text-slate-300 hover:text-red-400 text-xl leading-none transition-colors"
+              className="text-slate-300 hover:text-red-400 text-xl leading-none transition-colors p-2 -mr-1"
             >×</button>
           )}
           <span className="text-slate-400 text-xs">{collapsed ? '▶' : '▼'}</span>
@@ -102,7 +102,7 @@ export default function CategorySection({
             return (
               <li
                 key={item.id}
-                className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? 'border-t border-slate-50' : ''} ${done ? 'bg-green-50' : ''}`}
+                className={`flex items-center gap-3 px-4 py-4 tap-row ${i > 0 ? 'border-t border-slate-50' : ''} ${done ? 'bg-green-50' : ''}`}
               >
                 <button
                   onClick={() => onToggle(item.id)}
@@ -124,7 +124,7 @@ export default function CategorySection({
                 <select
                   value={item.bag ?? ''}
                   onChange={e => onBagChange(item.id, e.target.value || null)}
-                  className={`text-xs rounded-full px-2 py-0.5 border-0 outline-none cursor-pointer max-w-[110px] ${
+                  className={`text-sm rounded-full px-2 py-1.5 border-0 outline-none cursor-pointer max-w-[120px] ${
                     item.bag ? bagColor(item.bag, bags) : 'bg-slate-100 text-slate-400'
                   }`}
                 >
@@ -137,7 +137,7 @@ export default function CategorySection({
                 {!readOnly && (
                   <button
                     onClick={() => onDeleteItem(item.id)}
-                    className="text-slate-300 hover:text-red-400 text-xl leading-none flex-shrink-0 transition-colors"
+                    className="text-slate-300 hover:text-red-400 text-xl leading-none flex-shrink-0 transition-colors p-2 -mr-2"
                   >×</button>
                 )}
               </li>
@@ -154,18 +154,18 @@ export default function CategorySection({
                     onChange={e => setNewItemName(e.target.value)}
                     onPaste={handlePaste}
                     placeholder="Item name… or paste a list"
-                    className="flex-1 text-sm outline-none bg-transparent text-slate-700 placeholder-slate-300"
+                    className="flex-1 text-base outline-none bg-transparent text-slate-700 placeholder-slate-300"
                     onKeyDown={e => e.key === 'Escape' && setAdding(false)}
                   />
-                  <button type="submit" className="text-teal-500 text-sm font-semibold">Add</button>
-                  <button type="button" onClick={() => setAdding(false)} className="text-slate-400 text-sm">Cancel</button>
+                  <button type="submit" className="text-teal-500 text-sm font-semibold px-3 py-2 -mr-1">Add</button>
+                  <button type="button" onClick={() => setAdding(false)} className="text-slate-400 text-sm px-3 py-2 -mr-1">Cancel</button>
                 </form>
               </li>
             ) : (
               <li className="border-t border-slate-50">
                 <button
                   onClick={() => setAdding(true)}
-                  className="w-full px-4 py-3 text-left text-sm text-teal-500 hover:bg-slate-50 transition-colors"
+                  className="w-full px-4 py-4 text-left text-sm text-teal-500 tap-row transition-colors"
                 >
                   ＋ Add item
                 </button>

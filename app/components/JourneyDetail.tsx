@@ -115,16 +115,16 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
     : 0
 
   return (
-    <div className="flex-1 overflow-y-auto pb-24">
+    <div className="flex-1 overflow-y-auto pb-nav-safe">
       <div className="max-w-lg mx-auto px-4 pt-6 space-y-4">
 
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={onBack} className="text-slate-400 hover:text-slate-600 text-sm">← Back</button>
+            <button onClick={onBack} className="text-slate-400 hover:text-slate-600 text-lg p-2 -ml-2">← Back</button>
             <h2 className="text-lg font-bold text-slate-800">{journey.name}</h2>
           </div>
-          <button onClick={onEdit} className="text-sm text-teal-500 hover:text-teal-700 font-medium transition-colors">Edit</button>
+          <button onClick={onEdit} className="text-sm text-teal-500 hover:text-teal-700 font-medium transition-colors px-3 py-2 -mr-2">Edit</button>
         </div>
 
         {/* Flight info — compact summary, expandable */}
@@ -182,7 +182,7 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
         {/* See All Bags card */}
         <button
           onClick={() => onOpenPacking(null)}
-          className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-3 text-left hover:border-teal-300 transition-colors"
+          className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm px-4 py-4 text-left hover:border-teal-300 transition-colors"
         >
           <div className="flex items-center justify-between mb-2">
             <div>
@@ -205,7 +205,7 @@ export default function JourneyDetail({ journey, travelers, segments, travelerBa
             <button
               key={t.id}
               onClick={() => onOpenPacking(t.id)}
-              className="w-full bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-3 text-left hover:border-teal-300 transition-colors"
+              className="w-full bg-white rounded-2xl border border-slate-100 shadow-sm px-4 py-4 text-left hover:border-teal-300 transition-colors"
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">

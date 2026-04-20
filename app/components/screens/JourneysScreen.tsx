@@ -315,10 +315,10 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
 
   // ── Form view ──────────────────────────────────────────────────────────────
   if (view.type === 'form') return (
-    <div className="flex-1 overflow-y-auto pb-24">
+    <div className="flex-1 overflow-y-auto pb-nav-safe">
       <div className="max-w-lg mx-auto px-4 pt-6">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => setView({ type: 'list' })} className="text-slate-400 hover:text-slate-600 text-sm">← Back</button>
+          <button onClick={() => setView({ type: 'list' })} className="text-slate-400 hover:text-slate-600 text-lg p-2 -ml-2">← Back</button>
           <h2 className="text-lg font-bold text-slate-800">{view.editingId ? 'Edit Journey' : 'New Journey'}</h2>
         </div>
 
@@ -329,12 +329,12 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1">Journey name</label>
               <input value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Vietnam 2026" required
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50" />
+                className="w-full px-3 py-3 rounded-xl border border-slate-200 text-base outline-none focus:border-teal-400 bg-slate-50" />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-500 mb-1">CDC destination page (optional)</label>
               <input value={formCdcLink} onChange={e => setFormCdcLink(e.target.value)} placeholder="https://wwwnc.cdc.gov/travel/..." type="url"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50" />
+                className="w-full px-3 py-3 rounded-xl border border-slate-200 text-base outline-none focus:border-teal-400 bg-slate-50" />
             </div>
           </div>
 
@@ -354,7 +354,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
                   <button
                     type="button"
                     onClick={() => toggleTraveler(t.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl border transition-colors ${
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl border transition-colors ${
                       selected ? 'border-teal-400 bg-teal-50' : 'border-slate-200 bg-white'
                     }`}
                   >
@@ -369,7 +369,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
                       <div className="flex flex-wrap gap-1.5">
                         {availableBags.map(bag => (
                           <button key={bag} type="button" onClick={() => toggleBag(t.id, bag)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                            className={`px-2.5 py-2 rounded-lg text-xs font-medium border transition-colors ${
                               selectedBags.includes(bag) ? 'bg-teal-500 text-white border-transparent' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                             }`}>
                             {bag}
@@ -389,12 +389,12 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
                   value={travelerNickname}
                   onChange={e => setTravelerNickname(e.target.value)}
                   placeholder="Nickname (e.g. Ayla, Dad)"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-white"
+                  className="w-full px-3 py-3 rounded-xl border border-slate-200 text-base outline-none focus:border-teal-400 bg-white"
                 />
                 <div className="flex gap-2">
                   {(['baby', 'minor', 'adult'] as const).map(s => (
                     <button key={s} type="button" onClick={() => setTravelerStatus(s)}
-                      className={`flex-1 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
+                      className={`flex-1 py-3 rounded-xl text-sm font-semibold border transition-colors ${
                         travelerStatus === s ? 'bg-teal-500 text-white border-transparent' : 'bg-white text-slate-600 border-slate-200'
                       }`}>
                       {s === 'baby' ? 'Baby' : s === 'minor' ? 'Kid' : 'Adult'}
@@ -403,18 +403,18 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
                 </div>
                 <div className="flex gap-2">
                   <button type="submit" disabled={savingTraveler}
-                    className="flex-1 py-2 rounded-xl bg-teal-500 text-white text-xs font-semibold disabled:opacity-40">
+                    className="flex-1 py-3 rounded-xl bg-teal-500 text-white text-sm font-semibold disabled:opacity-40">
                     {savingTraveler ? 'Adding…' : 'Add traveler'}
                   </button>
                   <button type="button" onClick={() => { setShowTravelerForm(false); setTravelerNickname('') }}
-                    className="px-3 py-2 rounded-xl border border-slate-200 text-slate-500 text-xs">
+                    className="px-4 py-3 rounded-xl border border-slate-200 text-slate-500 text-sm">
                     Cancel
                   </button>
                 </div>
               </form>
             ) : (
               <button type="button" onClick={() => setShowTravelerForm(true)}
-                className="w-full py-2.5 text-xs text-teal-500 border border-dashed border-teal-200 rounded-xl bg-white hover:bg-teal-50 transition-colors">
+                className="w-full py-4 text-sm text-teal-500 border border-dashed border-teal-200 rounded-xl bg-white hover:bg-teal-50 transition-colors">
                 ＋ New traveler
               </button>
             )}
@@ -440,50 +440,50 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
                       <label className="block text-xs font-medium text-slate-500 mb-1">{label}</label>
                       <input value={seg[field]} onChange={e => updateSegment(seg.tempId, field, e.target.value)}
                         placeholder={ph} maxLength={3}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50 uppercase" />
+                        className="w-full px-3 py-3 rounded-xl border border-slate-200 text-base outline-none focus:border-teal-400 bg-slate-50 uppercase" />
                     </div>
                   ))}
                   {([['Departs', 'departure_time'], ['Arrives', 'arrival_time']] as const).map(([label, field]) => (
                     <div key={field}>
                       <label className="block text-xs font-medium text-slate-500 mb-1">{label}</label>
                       <input type="datetime-local" value={seg[field]} onChange={e => updateSegment(seg.tempId, field, e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs outline-none focus:border-teal-400 bg-slate-50" />
+                        className="w-full px-3 py-3 rounded-xl border border-slate-200 text-base outline-none focus:border-teal-400 bg-slate-50" />
                     </div>
                   ))}
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Airline</label>
                     <input value={seg.airline} onChange={e => updateSegment(seg.tempId, 'airline', e.target.value)} placeholder="Emirates"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50" />
+                      className="w-full px-3 py-3 rounded-xl border border-slate-200 text-base outline-none focus:border-teal-400 bg-slate-50" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Flight # (optional)</label>
                     <input value={seg.flight_number} onChange={e => updateSegment(seg.tempId, 'flight_number', e.target.value)} placeholder="EK392"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50" />
+                      className="w-full px-3 py-3 rounded-xl border border-slate-200 text-base outline-none focus:border-teal-400 bg-slate-50" />
                   </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-500 mb-1">Baggage policy URL (optional)</label>
                   <input value={seg.baggage_url} onChange={e => updateSegment(seg.tempId, 'baggage_url', e.target.value)} placeholder="https://..." type="url"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50" />
+                    className="w-full px-3 py-3 rounded-xl border border-slate-200 text-base outline-none focus:border-teal-400 bg-slate-50" />
                 </div>
                 {hasBabyInForm && (
                   <div>
                     <label className="block text-xs font-medium text-slate-500 mb-1">Infant baggage policy URL (optional)</label>
                     <input value={seg.infant_baggage_url} onChange={e => updateSegment(seg.tempId, 'infant_baggage_url', e.target.value)} placeholder="https://..." type="url"
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm outline-none focus:border-teal-400 bg-slate-50" />
+                      className="w-full px-3 py-3 rounded-xl border border-slate-200 text-base outline-none focus:border-teal-400 bg-slate-50" />
                   </div>
                 )}
               </div>
             ))}
 
             <button type="button" onClick={() => setFormSegments(prev => [...prev, emptySegment()])}
-              className="w-full py-3 text-sm text-teal-500 border border-dashed border-teal-200 rounded-2xl bg-white hover:bg-teal-50 transition-colors">
+              className="w-full py-4 text-sm text-teal-500 border border-dashed border-teal-200 rounded-2xl bg-white hover:bg-teal-50 transition-colors">
               ＋ Add flight segment
             </button>
           </div>
 
           <button type="submit" disabled={saving}
-            className="w-full py-3 rounded-2xl bg-teal-500 text-white font-semibold text-sm hover:bg-teal-600 disabled:opacity-40 transition-colors">
+            className="w-full py-4 rounded-2xl bg-teal-500 text-white font-semibold text-base hover:bg-teal-600 disabled:opacity-40 transition-colors">
             {saving ? 'Saving…' : view.editingId ? 'Save changes' : 'Create journey'}
           </button>
         </form>
@@ -493,7 +493,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
 
   // ── List view ──────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 overflow-y-auto pb-24">
+    <div className="flex-1 overflow-y-auto pb-nav-safe">
       <div className="max-w-lg mx-auto px-4 pt-6 space-y-3">
         <h2 className="text-lg font-bold text-slate-800 mb-4">Journeys</h2>
 
@@ -521,8 +521,8 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
                   })}</div>
                 </div>
                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                  <button onClick={() => openEdit(j)} className="text-slate-400 hover:text-teal-500 text-sm">Edit</button>
-                  <button onClick={() => handleDelete(j.id)} className="text-slate-300 hover:text-red-400 text-xl leading-none">×</button>
+                  <button onClick={() => openEdit(j)} className="text-slate-400 hover:text-teal-500 text-sm px-3 py-3 -my-3">Edit</button>
+                  <button onClick={() => handleDelete(j.id)} className="text-slate-300 hover:text-red-400 text-xl leading-none p-2 -mr-1">×</button>
                 </div>
               </div>
               {airports && (
@@ -535,7 +535,7 @@ export default function JourneysScreen({ user }: { user: User | 'guest' }) {
         })}
 
         <button onClick={openAdd}
-          className="w-full py-3 text-sm text-teal-500 border border-dashed border-teal-200 rounded-2xl bg-white hover:bg-teal-50 transition-colors">
+          className="w-full py-4 text-sm text-teal-500 border border-dashed border-teal-200 rounded-2xl bg-white hover:bg-teal-50 transition-colors">
           ＋ New journey
         </button>
       </div>

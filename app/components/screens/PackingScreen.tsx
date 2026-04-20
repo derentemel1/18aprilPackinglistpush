@@ -290,13 +290,13 @@ export default function PackingScreen({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto pb-24">
+    <div className="flex-1 overflow-y-auto pb-nav-safe">
       <div className="max-w-lg mx-auto">
         {/* Header */}
         <header className="sticky top-0 z-10 bg-slate-300 border-b border-slate-400 px-4 pt-5 pb-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <button onClick={onBack} className="text-slate-500 hover:text-slate-700 text-sm">←</button>
+              <button onClick={onBack} className="text-slate-500 hover:text-slate-700 text-lg p-2 -ml-2">←</button>
               <div>
                 <h1 className="text-base font-bold text-slate-800">
                   {isMaster ? 'See All Bags' : `${travelerNickname}`}
@@ -319,7 +319,7 @@ export default function PackingScreen({
               <button
                 key={b}
                 onClick={() => setBagFilter(b)}
-                className={`py-1.5 px-3 rounded-xl text-xs font-semibold transition-colors border whitespace-normal break-words text-left max-w-[160px] ${
+                className={`py-2.5 px-3 rounded-xl text-xs font-semibold transition-colors border whitespace-normal break-words text-left max-w-[160px] ${
                   bagFilter === b ? 'bg-violet-500 text-white border-transparent' : 'bg-white text-slate-600 border-slate-200'
                 }`}
               >
@@ -335,7 +335,7 @@ export default function PackingScreen({
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="type to find your..."
-              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 placeholder-slate-300 outline-none focus:border-teal-400 transition-colors"
+              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-3 text-base text-slate-700 placeholder-slate-300 outline-none focus:border-teal-400 transition-colors"
             />
             {searchResults.length > 0 && (
               <ul className="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-20 overflow-hidden">
@@ -398,9 +398,9 @@ export default function PackingScreen({
                         <li
                           key={item.id}
                           onClick={() => toggle(item.id)}
-                          className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors"
+                          className="flex items-center gap-3 px-4 py-4 cursor-pointer tap-row transition-colors"
                         >
-                          <span className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                          <span className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
                             checked.has(item.id) ? 'bg-teal-500 border-teal-500' : 'border-slate-300'
                           }`}>
                             {checked.has(item.id) && <span className="text-white text-[9px] font-bold">✓</span>}
@@ -454,7 +454,7 @@ export default function PackingScreen({
                   value={newCatName}
                   onChange={e => setNewCatName(e.target.value)}
                   placeholder="Category name…"
-                  className="flex-1 text-sm outline-none text-slate-700 placeholder-slate-300"
+                  className="flex-1 text-base outline-none text-slate-700 placeholder-slate-300"
                   onKeyDown={e => e.key === 'Escape' && setAddingCategory(false)}
                 />
                 <button type="submit" className="text-teal-500 text-sm font-semibold">Add</button>

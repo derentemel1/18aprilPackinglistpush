@@ -55,7 +55,7 @@ export default function InstallPrompt() {
   if (!show) return null
 
   return (
-    <div className="fixed bottom-6 left-4 right-4 z-50 max-w-sm mx-auto">
+    <div className="fixed left-4 right-4 z-50 max-w-sm mx-auto bottom-safe-6">
       <div className="bg-white rounded-2xl shadow-xl border border-slate-100 px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -78,13 +78,13 @@ export default function InstallPrompt() {
           <div className="flex gap-2 mt-3">
             <button
               onClick={install}
-              className="flex-1 py-2 rounded-xl bg-teal-500 text-white text-sm font-semibold hover:bg-teal-600 transition-colors"
+              className="flex-1 py-3 rounded-xl bg-teal-500 text-white text-sm font-semibold hover:bg-teal-600 transition-colors"
             >
               Install
             </button>
             <button
               onClick={dismiss}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-500 text-sm hover:bg-slate-50 transition-colors"
+              className="px-4 py-3 rounded-xl border border-slate-200 text-slate-500 text-sm hover:bg-slate-50 transition-colors"
             >
               Not now
             </button>

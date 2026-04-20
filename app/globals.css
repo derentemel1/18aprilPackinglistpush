@@ -8,4 +8,20 @@ html {
 
 button, a {
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+@layer utilities {
+  /* Scroll container bottom padding: clears nav + iPhone home bar */
+  .pb-nav-safe {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+  /* Fixed bottom elements: clears iPhone home bar */
+  .bottom-safe-6 {
+    bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
+  /* Active press feedback for tappable rows */
+  .tap-row:active {
+    background-color: rgb(241 245 249); /* slate-100 */
+  }
 }
