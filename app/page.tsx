@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import AuthScreen from './components/AuthScreen'
 import JourneysScreen from './components/screens/JourneysScreen'
+import InstallPrompt from './components/InstallPrompt'
 import type { User } from '@supabase/supabase-js'
 
 const LOCAL_AUTH_KEY = 'packing-guest'
@@ -50,6 +51,7 @@ export default function Page() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-100">
       <JourneysScreen user={user} />
+      <InstallPrompt />
 
       {/* Sign out — top right corner */}
       <div className="fixed top-3 right-4 z-30">
