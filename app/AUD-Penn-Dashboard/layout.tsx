@@ -27,6 +27,10 @@ const ibmPlexMono = IBM_Plex_Mono({
 export const metadata = {
   title: 'AUD Progress Hub',
   description: 'AUD-Penn Operations Dashboard',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+  },
 };
 
 export default function AUDLayout({ children }: { children: ReactNode }) {
