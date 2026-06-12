@@ -849,6 +849,8 @@
   position: relative;
   z-index: 1;
 }
+.sub-bar.has-slip { background-image: none; }
+
 /* Deliverable-completion progress: faded wash over the INCOMPLETE remainder */
 .sub-bar-remain {
   position: absolute;

@@ -245,9 +245,10 @@ interface SubphaseBarProps {
   isActive: boolean;
   onClick: () => void;
   view: 'actual' | 'ideal';
+  rowIndex: number;
 }
 
-function SubphaseBar({ sub, phaseColor, pxPerMonth, isActive, onClick, view }: SubphaseBarProps) {
+function SubphaseBar({ sub, phaseColor, pxPerMonth, isActive, onClick, view, rowIndex }: SubphaseBarProps) {
   const idealStart = sub.start;
   const idealEnd = sub.start + sub.max;
   const actual = sub.actual ?? { start: idealStart, end: idealEnd };
@@ -258,22 +259,29 @@ function SubphaseBar({ sub, phaseColor, pxPerMonth, isActive, onClick, view }: S
   const left = barStart * pxPerMonth;
   const barW = (barEnd - barStart) * pxPerMonth;
 
+  const slip = useActual ? actual.end - idealEnd : 0;
+  const hasSlip = slip > 0.01;
+
   const completion = sub.snapshot?.completion ?? 0;
   const completionPct = Math.round(completion * 1000) / 10;
 
   return (
-    <div className={`sub-row${isActive ? ' active' : ''}`} onClick={onClick}>
+    <div
+      className={`sub-row${isActive ? ' active' : ''}`}
+      onClick={onClick}
+      style={{ '--row-i': rowIndex } as React.CSSProperties}
+    >
       <div className="sub-row-label">
         <span className="sub-id">{sub.id}</span>
         <span className="sub-title">{sub.title}</span>
       </div>
       <div className="sub-row-track">
         <div
-          className={`sub-bar sub-${phaseColor}`}
+          className={`sub-bar sub-${phaseColor}${hasSlip ? ' has-slip' : ''}`}
           style={{ left, width: barW }}
           title={`${completionPct}% of deliverables complete`}
         >
-          {useActual && completion > 0 && completion < 1 && (
+          {useActual && (
             <div className="sub-bar-remain" style={{ left: `${completion * 100}%` }} />
           )}
           {useActual && completion > 0 && completion < 1 && (
@@ -451,7 +459,7 @@ function Timeline({ activeSubId, onSelect, view }: TimelineProps) {
 
           {/* Sub-phase rows */}
           <div className="rows">
-            {allSubs.map((sub) => (
+            {allSubs.map((sub, i) => (
               <SubphaseBar
                 key={sub.id}
                 sub={sub}
@@ -460,6 +468,7 @@ function Timeline({ activeSubId, onSelect, view }: TimelineProps) {
                 isActive={activeSubId === sub.id}
                 onClick={() => onSelect(sub.id)}
                 view={view}
+                rowIndex={i}
               />
             ))}
           </div>
@@ -577,9 +586,10 @@ function TimelineTab() {
   const [view, setView] = useState<'actual' | 'ideal'>('actual');
 
   return (
-    <div className="doc">
+    <div className="doc doc-compact">
       <div className="tl-bar">
         <div className="tl-bar-left">
+          <span className="kicker"></span>
           <h1 className="tl-bar-title">Timelines &amp; Progress Snapshots</h1>
         </div>
       </div>
@@ -600,7 +610,7 @@ function TimelineTab() {
             className={`tl-toggle-btn${view === 'ideal' ? ' is-on' : ''}`}
             onClick={() => setView('ideal')}
           >
-            Planned
+            ORIGINAL ESTIMATE
           </button>
         </div>
         <span className="tl-viewrow-note">
