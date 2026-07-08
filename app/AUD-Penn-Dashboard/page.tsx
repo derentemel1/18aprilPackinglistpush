@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './aud.css';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -20,6 +20,11 @@ interface Snapshot {
   tripsDone?: number;
 }
 
+interface HistorySnapshot {
+  snapshot: Snapshot;
+  deliverables: Deliverable[];
+}
+
 interface Subphase {
   id: string;
   title: string;
@@ -34,6 +39,7 @@ interface Subphase {
   oneliner: string;
   snapshot: Snapshot;
   deliverables: Deliverable[];
+  history?: Record<string, HistorySnapshot>;
 }
 
 interface Phase {
@@ -67,20 +73,50 @@ const PHASES: Phase[] = [
         id: '1.1',
         title: 'Strategic Partner Alignment, Logistics & Project Mapping',
         start: 0, min: 3, max: 4,
-        actual: { start: 0, end: 9 },
+        actual: { start: 0, end: 12 },
         cost: 522025, contingency: 0, trips: 5,
         oneliner: 'Define partner roles, governance, working teams, feasibility, accreditation pathway and clinical-site candidates.',
-        snapshot: { completion: 0.7162, charges: 384809.75, remainder: 137215.25, itemTotal: 522025, burn: 0.7371, tripsDone: 4 },
+        snapshot: { completion: 0.8328, charges: 384809.75, remainder: 137215.25, itemTotal: 522025, burn: 0.7371, tripsDone: 4 },
+        history: {
+          y1q1: {
+            snapshot: { completion: 0.5306, charges: 384809.75, remainder: 137215.25, itemTotal: 522025, burn: 0.7371, tripsDone: 4 },
+            deliverables: [
+              { id: '1.1a', text: 'Project Roles and Deliverables Defined', pct: 100 },
+              { id: '1.1b', text: 'Project Governance Framework Established', pct: 90 },
+              { id: '1.1c', text: 'Analyze Feasibility Documents/Studies', pct: 0 },
+              { id: '1.1d', text: 'Analyze CAA & SACSCOC Requirements', pct: 63 },
+              { id: '1.1e', text: 'Analyze Structural Requirements & Policy Gaps', pct: 80 },
+              { id: '1.1f', text: 'Facilities Needs Defined', pct: 30 },
+              { id: '1.1g', text: 'Assessment of Central Services', pct: 10 },
+              { id: '1.1h', text: 'Two Clinical Partners Identified', pct: 80 },
+              { id: '1.1i', text: 'Quarterly Assessment of project needs, expenses, and timing', pct: 24.55 },
+            ],
+          },
+          y1q2: {
+            snapshot: { completion: 0.7162, charges: 384809.75, remainder: 137215.25, itemTotal: 522025, burn: 0.7371, tripsDone: 4 },
+            deliverables: [
+              { id: '1.1a', text: 'Project Roles and Deliverables Defined', pct: 100 },
+              { id: '1.1b', text: 'Project Governance Framework Established', pct: 95 },
+              { id: '1.1c', text: 'Analyze Feasibility Documents/Studies', pct: 50 },
+              { id: '1.1d', text: 'Analyze CAA & SACSCOC Requirements', pct: 90 },
+              { id: '1.1e', text: 'Analyze Structural Requirements & Policy Gaps', pct: 80 },
+              { id: '1.1f', text: 'Facilities Needs Defined', pct: 35 },
+              { id: '1.1g', text: 'Assessment of Central Services', pct: 50 },
+              { id: '1.1h', text: 'Two Clinical Partners Identified', pct: 100 },
+              { id: '1.1i', text: 'Quarterly Assessment of project needs, expenses, and timing', pct: 44.55 },
+            ],
+          },
+        },
         deliverables: [
           { id: '1.1a', text: 'Project Roles and Deliverables Defined', pct: 100 },
-          { id: '1.1b', text: 'Project Governance Framework Established', pct: 95 },
-          { id: '1.1c', text: 'Analyze Feasibility Documents/Studies', pct: 50 },
-          { id: '1.1d', text: 'Analyze CAA & SACSCOC Requirements', pct: 90 },
+          { id: '1.1b', text: 'Project Governance Framework Established', pct: 100 },
+          { id: '1.1c', text: 'Analyze Feasibility Documents/Studies', pct: 100 },
+          { id: '1.1d', text: 'Analyze CAA & SACSCOC Requirements', pct: 100 },
           { id: '1.1e', text: 'Analyze Structural Requirements & Policy Gaps', pct: 80 },
-          { id: '1.1f', text: 'Facilities Needs Defined', pct: 35 },
+          { id: '1.1f', text: 'Facilities Needs Defined', pct: 50 },
           { id: '1.1g', text: 'Assessment of Central Services', pct: 50 },
           { id: '1.1h', text: 'Two Clinical Partners Identified', pct: 100 },
-          { id: '1.1i', text: 'Phase Workplan & Cost Analysis Updated', pct: 44.55 },
+          { id: '1.1i', text: 'Quarterly Assessment of project needs, expenses, and timing', pct: 69.55 },
         ],
       },
       {
@@ -90,14 +126,77 @@ const PHASES: Phase[] = [
         actual: { start: 6, end: 18 },
         cost: 809966, contingency: 56800, trips: 7,
         oneliner: 'Build the SOM administrative + curriculum framework and submit for UAE Ministry / CAA / SACSCOC approval.',
-        snapshot: { completion: 0, charges: 0, remainder: 809966, itemTotal: 809966, burn: 0 },
+        snapshot: { completion: 0.2443, charges: 0, remainder: 809966, itemTotal: 809966, burn: 0 },
+        history: {
+          y1q1: {
+            snapshot: { completion: 0, charges: 0, remainder: 809966, itemTotal: 809966, burn: 0 },
+            deliverables: [
+              { id: '1.2a', text: 'SOM administrative structure outlined', pct: 0 },
+              { id: '1.2a.1', text: 'Prepare Org Chart & Onboarding Timeline', pct: 0 },
+              { id: '1.2a.2', text: 'Description of Roles & Responsibilities to populate JDs', pct: 0 },
+              { id: '1.2b', text: 'Key SOM committees outlined', pct: 0 },
+              { id: '1.2c', text: 'Clinical MOUs finalized', pct: 0 },
+              { id: '1.2d', text: 'MD curriculum framework developed', pct: 0 },
+              { id: '1.2d.1', text: 'Define competencies, goals, and graduate attributes', pct: 0 },
+              { id: '1.2d.2', text: 'Map required courses to accreditation standards', pct: 0 },
+              { id: '1.2d.3', text: 'Sequence pedagogy for integrated curriculum flow', pct: 0 },
+              { id: '1.2d.4', text: 'Embed professionalism, teamwork, and ethical decision components', pct: 0 },
+              { id: '1.2d.5', text: 'Map path to integrate simulation, AI, VR, digital platforms', pct: 0 },
+              { id: '1.2d.6', text: 'Outline student and faculty assessment approach', pct: 0 },
+              { id: '1.2d.7', text: 'Define medical research training program options', pct: 0 },
+              { id: '1.2d.8', text: 'List required course directors and faculty attributes and experience to populate JDs', pct: 0 },
+              { id: '1.2d.9', text: 'Vet framework with government & partners for comment', pct: 0 },
+              { id: '1.2e', text: 'CAA application submitted', pct: 0 },
+              { id: '1.2e.1', text: 'Revise framework and assemble required documents', pct: 0 },
+              { id: '1.2e.2', text: 'Support AUD with CAA discussions, presentations, submissions, and revisions (including visits)', pct: 0 },
+              { id: '1.2f', text: 'SACSCOC application submitted', pct: 0 },
+            ],
+          },
+          y1q2: {
+            snapshot: { completion: 0, charges: 0, remainder: 809966, itemTotal: 809966, burn: 0 },
+            deliverables: [
+              { id: '1.2a', text: 'SOM administrative structure outlined', pct: 0 },
+              { id: '1.2a.1', text: 'Prepare Org Chart & Onboarding Timeline', pct: 0 },
+              { id: '1.2a.2', text: 'Description of Roles & Responsibilities to populate JDs', pct: 0 },
+              { id: '1.2b', text: 'Key SOM committees outlined', pct: 0 },
+              { id: '1.2c', text: 'Clinical MOUs finalized', pct: 0 },
+              { id: '1.2d', text: 'MD curriculum framework developed', pct: 0 },
+              { id: '1.2d.1', text: 'Define competencies, goals, and graduate attributes', pct: 0 },
+              { id: '1.2d.2', text: 'Map required courses to accreditation standards', pct: 0 },
+              { id: '1.2d.3', text: 'Sequence pedagogy for integrated curriculum flow', pct: 0 },
+              { id: '1.2d.4', text: 'Embed professionalism, teamwork, and ethical decision components', pct: 0 },
+              { id: '1.2d.5', text: 'Map path to integrate simulation, AI, VR, digital platforms', pct: 0 },
+              { id: '1.2d.6', text: 'Outline student and faculty assessment approach', pct: 0 },
+              { id: '1.2d.7', text: 'Define medical research training program options', pct: 0 },
+              { id: '1.2d.8', text: 'List required course directors and faculty attributes and experience to populate JDs', pct: 0 },
+              { id: '1.2d.9', text: 'Vet framework with government & partners for comment', pct: 0 },
+              { id: '1.2e', text: 'CAA application submitted', pct: 0 },
+              { id: '1.2e.1', text: 'Revise framework and assemble required documents', pct: 0 },
+              { id: '1.2e.2', text: 'Support AUD with CAA discussions, presentations, submissions, and revisions (including visits)', pct: 0 },
+              { id: '1.2f', text: 'SACSCOC application submitted', pct: 0 },
+            ],
+          },
+        },
         deliverables: [
-          { id: '1.2a', text: 'SOM Leadership structure finalized', pct: 0 },
-          { id: '1.2b', text: 'Governance committees established', pct: 0 },
-          { id: '1.2c', text: 'Clinical MOUs executed', pct: 0 },
-          { id: '1.2d', text: 'MD curriculum framework approved', pct: 0 },
+          { id: '1.2a', text: 'SOM administrative structure outlined', pct: 50 },
+          { id: '1.2a.1', text: 'Prepare Org Chart & Onboarding Timeline', pct: 100 },
+          { id: '1.2a.2', text: 'Description of Roles & Responsibilities to populate JDs', pct: 0 },
+          { id: '1.2b', text: 'Key SOM committees outlined', pct: 0 },
+          { id: '1.2c', text: 'Clinical MOUs finalized', pct: 0 },
+          { id: '1.2d', text: 'MD curriculum framework developed', pct: 14.21 },
+          { id: '1.2d.1', text: 'Define competencies, goals, and graduate attributes', pct: 100 },
+          { id: '1.2d.2', text: 'Map required courses to accreditation standards', pct: 0 },
+          { id: '1.2d.3', text: 'Sequence pedagogy for integrated curriculum flow', pct: 100 },
+          { id: '1.2d.4', text: 'Embed professionalism, teamwork, and ethical decision components', pct: 100 },
+          { id: '1.2d.5', text: 'Map path to integrate simulation, AI, VR, digital platforms', pct: 0 },
+          { id: '1.2d.6', text: 'Outline student and faculty assessment approach', pct: 0 },
+          { id: '1.2d.7', text: 'Define medical research training program options', pct: 0 },
+          { id: '1.2d.8', text: 'List required course directors and faculty attributes and experience to populate JDs', pct: 0 },
+          { id: '1.2d.9', text: 'Vet framework with government & partners for comment', pct: 0 },
           { id: '1.2e', text: 'CAA application submitted', pct: 0 },
-          { id: '1.2f', text: 'SACSCOC package submitted', pct: 0 },
+          { id: '1.2e.1', text: 'Revise framework and assemble required documents', pct: 0 },
+          { id: '1.2e.2', text: 'Support AUD with CAA discussions, presentations, submissions, and revisions (including visits)', pct: 0 },
+          { id: '1.2f', text: 'SACSCOC application submitted', pct: 0 },
         ],
       },
       {
@@ -107,11 +206,31 @@ const PHASES: Phase[] = [
         cost: 43443, contingency: 0, trips: 0,
         oneliner: 'Pre-launch admissions design — standards, decision process, logistics, recruitment cadence.',
         snapshot: { completion: 0, charges: 0, remainder: 43443, itemTotal: 43443, burn: 0 },
+        history: {
+          y1q1: {
+            snapshot: { completion: 0, charges: 0, remainder: 43443, itemTotal: 43443, burn: 0 },
+            deliverables: [
+              { id: '1.3a', text: 'Admissions Standards & Criteria established', pct: 0 },
+              { id: '1.3b', text: 'Admissions Committee role defined', pct: 0 },
+              { id: '1.3c', text: 'Admissions process determined', pct: 0 },
+              { id: '1.3d', text: 'Penn role in admissions determined', pct: 0 },
+            ],
+          },
+          y1q2: {
+            snapshot: { completion: 0, charges: 0, remainder: 43443, itemTotal: 43443, burn: 0 },
+            deliverables: [
+              { id: '1.3a', text: 'Admissions Standards & Criteria established', pct: 0 },
+              { id: '1.3b', text: 'Admissions Committee role defined', pct: 0 },
+              { id: '1.3c', text: 'Admissions process determined', pct: 0 },
+              { id: '1.3d', text: 'Penn role in admissions determined', pct: 0 },
+            ],
+          },
+        },
         deliverables: [
-          { id: '1.3a', text: 'Admissions policy approved', pct: 0 },
-          { id: '1.3b', text: 'Admissions Committee appointed', pct: 0 },
-          { id: '1.3c', text: 'Admissions process documented', pct: 0 },
-          { id: '1.3d', text: 'Penn role in admissions defined', pct: 0 },
+          { id: '1.3a', text: 'Admissions Standards & Criteria established', pct: 0 },
+          { id: '1.3b', text: 'Admissions Committee role defined', pct: 0 },
+          { id: '1.3c', text: 'Admissions process determined', pct: 0 },
+          { id: '1.3d', text: 'Penn role in admissions determined', pct: 0 },
         ],
       },
     ],
@@ -187,14 +306,24 @@ const PHASES: Phase[] = [
   },
 ];
 
-// ─── Formatters ───────────────────────────────────────────────────────────────
+// ─── View resolution ────────────────────────────────────────────────────────
 
-function fmtUSD(n: number): string {
-  const isWhole = Math.abs(n - Math.round(n)) < 0.005;
-  return '$' + n.toLocaleString('en-US', {
-    minimumFractionDigits: isWhole ? 0 : 2,
-    maximumFractionDigits: 2,
-  });
+type ViewMode = 'actual' | 'ideal' | 'y1q1' | 'y1q2';
+
+// Resolve the effective snapshot + deliverables for a given toggle view.
+// "y1q1"/"y1q2" pull historical (pre-sync) data if present; "ideal" zeroes
+// everything out to represent the original, pre-work proposal.
+function getSubView(sub: Subphase, view: ViewMode): { snapshot: Snapshot; deliverables: Deliverable[] } {
+  if ((view === 'y1q2' || view === 'y1q1') && sub.history?.[view]) {
+    return sub.history[view];
+  }
+  if (view === 'ideal') {
+    return {
+      snapshot: { ...sub.snapshot, completion: 0 },
+      deliverables: sub.deliverables.map((d) => ({ ...d, pct: 0 })),
+    };
+  }
+  return { snapshot: sub.snapshot, deliverables: sub.deliverables };
 }
 
 // ─── Timeline constants ───────────────────────────────────────────────────────
@@ -244,7 +373,7 @@ interface SubphaseBarProps {
   pxPerMonth: number;
   isActive: boolean;
   onClick: () => void;
-  view: 'actual' | 'ideal';
+  view: ViewMode;
   rowIndex: number;
 }
 
@@ -252,7 +381,7 @@ function SubphaseBar({ sub, phaseColor, pxPerMonth, isActive, onClick, view, row
   const idealStart = sub.start;
   const idealEnd = sub.start + sub.max;
   const actual = sub.actual ?? { start: idealStart, end: idealEnd };
-  const useActual = view === 'actual';
+  const useActual = view === 'actual' || view === 'y1q2' || view === 'y1q1';
 
   const barStart = useActual ? actual.start : idealStart;
   const barEnd = useActual ? actual.end : idealEnd;
@@ -262,7 +391,8 @@ function SubphaseBar({ sub, phaseColor, pxPerMonth, isActive, onClick, view, row
   const slip = useActual ? actual.end - idealEnd : 0;
   const hasSlip = slip > 0.01;
 
-  const completion = sub.snapshot?.completion ?? 0;
+  const viewData = getSubView(sub, view);
+  const completion = viewData.snapshot?.completion ?? 0;
   const completionPct = Math.round(completion * 1000) / 10;
 
   return (
@@ -281,12 +411,14 @@ function SubphaseBar({ sub, phaseColor, pxPerMonth, isActive, onClick, view, row
           style={{ left, width: barW }}
           title={`${completionPct}% of deliverables complete`}
         >
-          {useActual && (
-            <div className="sub-bar-remain" style={{ left: `${completion * 100}%` }} />
-          )}
-          {useActual && completion > 0 && completion < 1 && (
-            <div className="sub-bar-fillline" style={{ left: `${completion * 100}%` }} />
-          )}
+          <div
+            className="sub-bar-remain"
+            style={{ left: `${completion * 100}%`, opacity: useActual ? 1 : 0 }}
+          />
+          <div
+            className="sub-bar-fillline"
+            style={{ left: `${completion * 100}%`, opacity: useActual && completion > 0 && completion < 1 ? 1 : 0 }}
+          />
           <span className="sub-bar-id">
             {sub.id}{useActual ? ` · ${completionPct}%` : ''}
           </span>
@@ -301,7 +433,7 @@ function SubphaseBar({ sub, phaseColor, pxPerMonth, isActive, onClick, view, row
 interface TimelineProps {
   activeSubId: string | null;
   onSelect: (id: string) => void;
-  view: 'actual' | 'ideal';
+  view: ViewMode;
 }
 
 function Timeline({ activeSubId, onSelect, view }: TimelineProps) {
@@ -487,42 +619,22 @@ function Timeline({ activeSubId, onSelect, view }: TimelineProps) {
 
 // ─── SnapshotCards ────────────────────────────────────────────────────────────
 
-function SnapshotCards({ sub }: { sub: Subphase }) {
-  const pg = sub.snapshot;
+function SnapshotCards({ sub, snap }: { sub: Subphase; snap: Snapshot }) {
   const pct = (n: number) => (n * 100).toFixed(n === 0 ? 0 : 2) + '%';
-  const rag = (n: number) => (n >= 0.67 ? 'green' : n >= 0.34 ? 'yellow' : 'red');
+  const rag = (n: number) => (n === 0 ? null : n >= 0.67 ? 'green' : 'yellow');
   return (
     <div className="snapshot">
       <div className="snap-grid">
         <div className="snap-card snap-pct">
           <div className="snap-label">Completion rate</div>
           <div className="snap-pct-row">
-            <span className={`snap-dot ${rag(pg.completion)}`} />
-            <span className="snap-big">{pct(pg.completion)}</span>
+            {rag(snap.completion) && <span className={`snap-dot ${rag(snap.completion)}`} />}
+            <span className="snap-big">{pct(snap.completion)}</span>
           </div>
-        </div>
-        <div className="snap-card snap-pct">
-          <div className="snap-label">Budget burn</div>
-          <div className="snap-pct-row">
-            <span className={`snap-dot ${rag(pg.burn)}`} />
-            <span className="snap-big">{pct(pg.burn)}</span>
-          </div>
-        </div>
-        <div className="snap-card snap-total">
-          <div className="snap-label">Sub-phase budget</div>
-          <div className="snap-money">{fmtUSD(pg.itemTotal)}</div>
-        </div>
-        <div className="snap-card">
-          <div className="snap-label">Billed to date</div>
-          <div className="snap-money">{fmtUSD(pg.charges)}</div>
-        </div>
-        <div className="snap-card">
-          <div className="snap-label">Budget left</div>
-          <div className="snap-money">{fmtUSD(pg.remainder)}</div>
         </div>
         <div className="snap-card">
           <div className="snap-label">Trips completed</div>
-          <div className="snap-money">{`${pg.tripsDone ?? 0} of ${sub.trips}`}</div>
+          <div className="snap-money">{`${snap.tripsDone ?? 0} of ${sub.trips}`}</div>
         </div>
       </div>
     </div>
@@ -531,7 +643,7 @@ function SnapshotCards({ sub }: { sub: Subphase }) {
 
 // ─── DetailPanel ──────────────────────────────────────────────────────────────
 
-function DetailPanel({ activeSubId, onClose }: { activeSubId: string | null; onClose: () => void }) {
+function DetailPanel({ activeSubId, view, onClose }: { activeSubId: string | null; view: ViewMode; onClose: () => void }) {
   let sub: Subphase | null = null;
   let phase: Phase | null = null;
   for (const p of PHASES) {
@@ -539,6 +651,8 @@ function DetailPanel({ activeSubId, onClose }: { activeSubId: string | null; onC
     if (s) { sub = s; phase = p; break; }
   }
   if (!sub || !phase) return null;
+
+  const viewData = getSubView(sub, view);
 
   return (
     <div className="detail-panel is-overlay" role="dialog" aria-label={`Sub-phase ${sub.id} detail`}>
@@ -550,27 +664,25 @@ function DetailPanel({ activeSubId, onClose }: { activeSubId: string | null; onC
         <button className="dp-close" onClick={onClose} aria-label="Close detail">×</button>
       </div>
 
-      {sub.snapshot && <SnapshotCards sub={sub} />}
+      <SnapshotCards sub={sub} snap={viewData.snapshot} />
 
       <div className="dp-section-title">Key deliverables</div>
       <ol className="dp-deliverables">
-        {sub.deliverables.map((d, i) => {
-          const pct = typeof d.pct === 'number' ? d.pct : null;
-          const rag = pct === null ? null : pct >= 67 ? 'green' : pct >= 34 ? 'yellow' : 'red';
+        {viewData.deliverables.map((d, i) => {
+          const pct = d.pct;
+          const rag = pct === 0 ? null : pct >= 67 ? 'green' : 'yellow';
           return (
             <li key={i}>
               <span className="dp-d-num">{d.id}</span>
               <span className="dp-d-body">
                 <span className="dp-d-text">{d.text}</span>
               </span>
-              {pct !== null && (
-                <span className="dp-d-status">
-                  <span className={`dp-d-dot ${rag}`} />
-                  <span className={`dp-d-pct${pct === 0 ? ' is-zero' : ''}`}>
-                    {Number.isInteger(pct) ? pct : pct.toFixed(2)}%
-                  </span>
+              <span className="dp-d-status">
+                {rag && <span className={`dp-d-dot ${rag}`} />}
+                <span className={`dp-d-pct${pct === 0 ? ' is-zero' : ''}`}>
+                  {Number.isInteger(pct) ? pct : pct.toFixed(2)}%
                 </span>
-              )}
+              </span>
             </li>
           );
         })}
@@ -581,9 +693,43 @@ function DetailPanel({ activeSubId, onClose }: { activeSubId: string | null; onC
 
 // ─── TimelineTab ──────────────────────────────────────────────────────────────
 
+const PLAY_SEQUENCE: ViewMode[] = ['ideal', 'y1q1', 'y1q2', 'actual'];
+const PLAY_STEP_MS = 2000;
+
 function TimelineTab() {
   const [activeSubId, setActiveSubId] = useState<string | null>(null);
-  const [view, setView] = useState<'actual' | 'ideal'>('actual');
+  const [view, setView] = useState<ViewMode>('actual');
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const currentIdx = PLAY_SEQUENCE.indexOf(view);
+    const startIdx = currentIdx === -1 ? 0 : currentIdx;
+    if (startIdx >= PLAY_SEQUENCE.length - 1) return;
+    const id = setTimeout(() => setView(PLAY_SEQUENCE[startIdx + 1]), PLAY_STEP_MS);
+    return () => clearTimeout(id);
+  }, [isPlaying, view]);
+
+  useEffect(() => {
+    if (isPlaying && view === PLAY_SEQUENCE[PLAY_SEQUENCE.length - 1]) {
+      const id = setTimeout(() => setIsPlaying(false), PLAY_STEP_MS);
+      return () => clearTimeout(id);
+    }
+  }, [isPlaying, view]);
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      setIsPlaying(false);
+    } else {
+      setView(PLAY_SEQUENCE[0]);
+      setIsPlaying(true);
+    }
+  };
+
+  const jumpTo = (v: ViewMode) => {
+    setIsPlaying(false);
+    setView(v);
+  };
 
   return (
     <div className="doc doc-compact">
@@ -595,26 +741,75 @@ function TimelineTab() {
       </div>
 
       <div className="tl-viewrow">
+        <div className="tl-play-wrap">
+          <div className="tl-play-note" aria-hidden="true">
+            <span className="tl-play-note-text">click me</span>
+            <svg viewBox="0 0 30 20" fill="none">
+              <path d="M2 10 C 10 6, 18 6, 24 8" stroke="#1f8a5b" strokeWidth="2" strokeLinecap="round" />
+              <path d="M24 8 L 19 4.5 M24 8 L 20 12" stroke="#1f8a5b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <button
+            type="button"
+            className={`tl-play-btn${isPlaying ? ' is-playing' : ''}`}
+            onClick={togglePlay}
+            aria-label={isPlaying ? 'Pause' : 'Play through view states'}
+            aria-pressed={isPlaying}
+          >
+            {isPlaying ? (
+              <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                <rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
+                <rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                <path d="M4 2.5v11l10-5.5-10-5.5z" fill="currentColor" />
+              </svg>
+            )}
+          </button>
+        </div>
         <div className="tl-toggle" role="tablist" aria-label="Timeline view">
           <button
             role="tab"
             aria-selected={view === 'actual'}
             className={`tl-toggle-btn${view === 'actual' ? ' is-on' : ''}`}
-            onClick={() => setView('actual')}
+            onClick={() => jumpTo('actual')}
           >
-            Actual
+            Y1Q3
+          </button>
+          <button
+            role="tab"
+            aria-selected={view === 'y1q2'}
+            className={`tl-toggle-btn${view === 'y1q2' ? ' is-on' : ''}`}
+            onClick={() => jumpTo('y1q2')}
+          >
+            Y1Q2
+          </button>
+          <button
+            role="tab"
+            aria-selected={view === 'y1q1'}
+            className={`tl-toggle-btn${view === 'y1q1' ? ' is-on' : ''}`}
+            onClick={() => jumpTo('y1q1')}
+          >
+            Y1Q1
           </button>
           <button
             role="tab"
             aria-selected={view === 'ideal'}
             className={`tl-toggle-btn${view === 'ideal' ? ' is-on' : ''}`}
-            onClick={() => setView('ideal')}
+            onClick={() => jumpTo('ideal')}
           >
-            ORIGINAL ESTIMATE
+            PROPOSAL
           </button>
         </div>
         <span className="tl-viewrow-note">
-          {view === 'ideal' ? 'As written in SOW1 October 2025' : ''}
+          {view === 'ideal'
+            ? 'As written in SOW1 October 2025'
+            : view === 'y1q2'
+            ? "Earlier snapshot — before today's data sync"
+            : view === 'y1q1'
+            ? 'Earliest snapshot on record'
+            : ''}
         </span>
       </div>
 
@@ -628,7 +823,7 @@ function TimelineTab() {
           {activeSubId && (
             <div className="detail-backdrop" onClick={() => setActiveSubId(null)} />
           )}
-          <DetailPanel activeSubId={activeSubId} onClose={() => setActiveSubId(null)} />
+          <DetailPanel activeSubId={activeSubId} view={view} onClose={() => setActiveSubId(null)} />
         </div>
       </div>
 
@@ -640,307 +835,287 @@ function TimelineTab() {
   );
 }
 
-// ─── Org Chart Data ───────────────────────────────────────────────────────────
+// ─── Phase1BreakdownTab (WBS) ─────────────────────────────────────────────────
 
-const ORG_QUARTERS = ['Q2 2027','Q3 2027','Q4 2027','Q1 2028','Q2 2028','Q3 2028','Q4 2028','2029+'];
-
-function shiftQuarter(q: string, n: number): string {
-  if (q === 'Existing') return 'Existing';
-  const i = ORG_QUARTERS.indexOf(q);
-  if (i < 0) return q;
-  return ORG_QUARTERS[Math.min(i + n, ORG_QUARTERS.length - 1)];
-}
-
-function yearOf(q: string): string {
-  if (q === 'Existing') return 'existing';
-  if (q.includes('2027')) return 'y2027';
-  if (q.includes('2028')) return 'y2028';
-  return 'y2029';
-}
-
-const BUCKET: Record<string, { fill: string; label: string }> = {
-  existing: { fill: '#33485f', label: 'Existing role' },
-  y2027:    { fill: '#3C6EB4', label: '2027 hire' },
-  y2028:    { fill: '#5A8E3E', label: '2028 hire' },
-  y2029:    { fill: '#C55A11', label: '2029+ hire' },
-};
-
-interface RawBox {
-  id: string;
-  parent: string | null;
+interface WbsGroup {
   label: string;
-  x: number; y: number; w: number; h: number;
-  q: string;
-  context?: boolean;
-  staff?: boolean;
+  ids: string[];
 }
 
-const RAW_BOXES: RawBox[] = [
-  { id: 'provost',       parent: null,           label: 'Provost',                                          x:6.36, y:0.32, w:1.22, h:0.45, q:'Existing', context:true },
-  { id: 'dean',          parent: 'provost',       label: 'Dean of School of Medicine',                       x:5.72, y:1.19, w:2.51, h:0.40, q:'Existing' },
-  { id: 'adminAsst',     parent: 'dean',          label: 'Administrative Assistant',                         x:4.10, y:1.83, w:1.66, h:0.27, q:'Existing', staff:true },
-  { id: 'vdume',         parent: 'dean',          label: 'Vice Dean, Undergraduate Medical Education',       x:0.67, y:2.82, w:5.53, h:0.86, q:'Existing' },
-  { id: 'adFaculty',     parent: 'dean',          label: 'Associate Dean, Faculty Affairs',                  x:6.33, y:2.84, w:1.38, h:0.81, q:'Q2 2028' },
-  { id: 'adAssess',      parent: 'dean',          label: 'Associate Dean, Assessment & Program Development', x:7.88, y:2.86, w:1.38, h:0.81, q:'Q4 2028' },
-  { id: 'dirAdmin',      parent: 'dean',          label: 'Director, Administration',                         x:9.40, y:2.84, w:1.38, h:0.81, q:'Q4 2027' },
-  { id: 'adResearch',    parent: 'dean',          label: 'Associate Dean, Research',                         x:10.89,y:2.85, w:1.04, h:0.81, q:'2029+' },
-  { id: 'deptChairs',    parent: 'dean',          label: 'Department Chairs / Heads',                        x:12.06,y:2.85, w:1.04, h:0.82, q:'2029+' },
-  { id: 'vdAdmin',       parent: 'vdume',         label: 'Admin',                                            x:0.17, y:3.72, w:0.43, h:0.23, q:'Q3 2027', staff:true },
-  { id: 'dirCurr',       parent: 'vdume',         label: 'Director, Curriculum',                             x:0.35, y:4.06, w:1.16, h:0.50, q:'Q2 2028' },
-  { id: 'dirAdmissions', parent: 'vdume',         label: 'Director, Admissions',                             x:1.76, y:4.06, w:1.16, h:0.50, q:'Q3 2027' },
-  { id: 'adStudent',     parent: 'vdume',         label: 'Associate Dean, Student Affairs',                  x:3.17, y:4.06, w:1.16, h:0.50, q:'Q4 2028' },
-  { id: 'dirSim',        parent: 'vdume',         label: 'Director, Simulation & Education Technology',      x:4.59, y:4.06, w:1.58, h:0.51, q:'Q4 2028' },
-  { id: 'if',            parent: 'dirCurr',       label: 'Associate Director, IF',                           x:0.57, y:4.76, w:1.00, h:0.41, q:'Q4 2028' },
-  { id: 'ccp',           parent: 'dirCurr',       label: 'Associate Director, CCP',                          x:0.56, y:5.26, w:1.00, h:0.41, q:'2029+' },
-  { id: 'pcp',           parent: 'dirCurr',       label: 'Associate Director, PCP',                          x:0.56, y:5.75, w:1.00, h:0.41, q:'2029+' },
-  { id: 'finAid',        parent: 'dirAdmissions', label: 'Associate Director, Financial Aid',                x:1.99, y:4.71, w:0.89, h:0.37, q:'Q3 2027' },
-  { id: 'coaching',      parent: 'adStudent',     label: 'Director, Coaching',                               x:3.37, y:4.71, w:0.97, h:0.37, q:'Q4 2028' },
-  { id: 'advising',      parent: 'adStudent',     label: 'Director, Student Advising',                       x:3.36, y:5.20, w:0.98, h:0.63, q:'Q4 2028' },
-  { id: 'studentSvc',    parent: 'adStudent',     label: 'Student Services: Health · Counseling · Disability',x:3.36,y:5.95, w:1.41, h:0.80, q:'2029+' },
-  { id: 'facAdmin',      parent: 'adFaculty',     label: 'Admin',                                            x:6.73, y:3.72, w:0.44, h:0.23, q:'Q2 2028', staff:true },
-  { id: 'facDev',        parent: 'adFaculty',     label: 'Director, Faculty & Resident Development',         x:6.72, y:4.06, w:1.00, h:0.71, q:'Q2 2028' },
-  { id: 'coi',           parent: 'adFaculty',     label: 'Administrator, COI & Faculty Conduct',             x:6.72, y:4.88, w:1.00, h:0.71, q:'Q4 2028' },
-  { id: 'apptPromo',     parent: 'adFaculty',     label: 'Administrator, Appointments & Promotions',         x:6.71, y:5.68, w:1.00, h:0.71, q:'Q4 2028' },
-  { id: 'assessAdmin',   parent: 'adAssess',      label: 'Admin',                                            x:8.27, y:3.74, w:0.47, h:0.23, q:'Q2 2028', staff:true },
-  { id: 'eduData',       parent: 'adAssess',      label: 'Director, Educational Data & Analytics',           x:8.29, y:4.11, w:1.00, h:0.71, q:'Q3 2028' },
-  { id: 'assessEval',    parent: 'adAssess',      label: 'Director, Assessment & Evaluation',                x:8.29, y:4.97, w:1.00, h:0.71, q:'Q4 2028' },
-  { id: 'dirAdminAdmin', parent: 'dirAdmin',      label: 'Admin',                                            x:9.78, y:3.73, w:0.47, h:0.23, q:'Q4 2027', staff:true },
-  { id: 'central',       parent: 'dirAdmin',      label: 'Central Services: Registrar · Facilities · Finance · Library · IT', x:9.78,y:4.05,w:1.16,h:1.15,q:'Existing' },
+interface WbsColumnDef {
+  num: string;
+  title: string;
+  accent: string;
+  groups: WbsGroup[];
+}
+
+// Column definitions — mirrors the source WBS chart's groupings & left-to-right order.
+const WBS_COLUMNS: WbsColumnDef[] = [
+  {
+    num: '1',
+    title: 'Clinical Partners Ready',
+    accent: 'wbs-green',
+    groups: [
+      { label: '1.1 Activities', ids: ['1.1h'] },
+      { label: '1.2 Activities', ids: ['1.2c'] },
+    ],
+  },
+  {
+    num: '2',
+    title: 'Facilities and Services Ready',
+    accent: 'wbs-blue',
+    groups: [
+      { label: '1.1 Activities', ids: ['1.1f', '1.1g'] },
+    ],
+  },
+  {
+    num: '4',
+    title: 'Curriculum Ready',
+    accent: 'wbs-orange',
+    groups: [
+      {
+        label: '1.2 Activities',
+        ids: [
+          '1.2d', '1.2d.1', '1.2d.2', '1.2d.3', '1.2d.4',
+          '1.2d.5', '1.2d.6', '1.2d.7', '1.2d.8', '1.2d.9',
+        ],
+      },
+    ],
+  },
+  {
+    num: '5',
+    title: 'CAA & SACS Submitted',
+    accent: 'wbs-teal',
+    groups: [
+      { label: '1.1 Activities', ids: ['1.1c', '1.1d', '1.1e'] },
+      { label: '1.2 Activities', ids: ['1.2e', '1.2e.1', '1.2e.2', '1.2f'] },
+    ],
+  },
+  {
+    num: '6',
+    title: 'Governance & Leadership Ready',
+    accent: 'wbs-red',
+    groups: [
+      { label: '1.1 Activities', ids: ['1.1a', '1.1b', '1.1i'] },
+      { label: '1.2 Activities', ids: ['1.2a', '1.2a.1', '1.2a.2', '1.2b'] },
+    ],
+  },
+  {
+    num: '3',
+    title: 'Admissions Strategy Ready',
+    accent: 'wbs-purple',
+    groups: [
+      { label: '1.3 Activities', ids: ['1.3a', '1.3b', '1.3c', '1.3d'] },
+    ],
+  },
 ];
 
-const ORG_SCALE = 96;
-const ORG_W = 13.333 * ORG_SCALE;
-const ORG_H = 7.10 * ORG_SCALE;
-const ORG_STEPS = ['Baseline', ...ORG_QUARTERS];
-
-function buildScenario(shift: number) {
-  return RAW_BOXES.map((b) => {
-    const q = shift === 0 ? b.q : shiftQuarter(b.q, shift);
-    return { ...b, quarter: q, bucket: yearOf(q) };
-  });
+function findDeliverable(id: string, view: ViewMode): Deliverable | null {
+  for (const phase of PHASES) {
+    for (const sub of phase.subphases) {
+      const viewData = getSubView(sub, view);
+      const d = viewData.deliverables.find((x) => x.id === id);
+      if (d) return d;
+    }
+  }
+  return null;
 }
 
-const SCENARIOS: Record<string, { key: string; name: string; boxes: (RawBox & { quarter: string; bucket: string })[]; insights: string[] }> = {
-  ideal: {
-    key: 'ideal', name: 'Ideal Timeline',
-    boxes: buildScenario(0),
-    insights: [
-      'Front-loads core leadership to drive approvals, hiring, and launch planning.',
-      'Places curriculum and assessment roles early enough to shape program design.',
-      'Builds operations before launch to reduce execution risk.',
-      'Defers specialized roles until enrollment and program complexity justify them.',
-    ],
-  },
-  failsafe: {
-    key: 'failsafe', name: 'Failsafe Timeline',
-    boxes: buildScenario(1),
-    insights: [
-      'Shifts most hires by ~1 quarter to absorb approval and onboarding delays.',
-      'Protects launch readiness by preserving core leadership and curriculum capacity.',
-      'Moves student-facing roles closer to enrollment.',
-      'Defers non-launch-critical specialty roles to 2029+.',
-    ],
-  },
-};
+type WbsStatus = 'green' | 'yellow' | 'blue';
 
-// ─── OrgChartTab ──────────────────────────────────────────────────────────────
+function statusOf(pct: number): WbsStatus {
+  if (pct >= 99.5) return 'green';
+  if (pct > 0) return 'yellow';
+  return 'blue';
+}
 
-function OrgChartTab() {
-  const [scenarioKey, setScenarioKey] = useState<string>(() => {
-    try { return localStorage.getItem('aud-org-scenario') || 'ideal'; } catch { return 'ideal'; }
-  });
-  const [step, setStep] = useState<number>(() => {
-    try { return Math.min(ORG_STEPS.length - 1, Math.max(0, +(localStorage.getItem('aud-org-step') || 0))); } catch { return 0; }
-  });
-  const [playing, setPlaying] = useState(false);
-  const [scale, setScale] = useState(1);
-  const wrapRef = useRef<HTMLDivElement>(null);
+const STATUS_LABEL: Record<WbsStatus, string> = { green: 'Complete', yellow: 'Ongoing', blue: 'Not started' };
 
-  const scenario = SCENARIOS[scenarioKey];
-
-  useEffect(() => { try { localStorage.setItem('aud-org-scenario', scenarioKey); } catch {} }, [scenarioKey]);
-  useEffect(() => { try { localStorage.setItem('aud-org-step', String(step)); } catch {} }, [step]);
-
-  useEffect(() => {
-    const measure = () => {
-      if (!wrapRef.current) return;
-      setScale(Math.min(1, wrapRef.current.clientWidth / ORG_W));
-    };
-    measure();
-    const ro = new ResizeObserver(measure);
-    if (wrapRef.current) ro.observe(wrapRef.current);
-    window.addEventListener('resize', measure);
-    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
-  }, []);
-
-  useEffect(() => {
-    if (!playing) return;
-    if (step >= ORG_STEPS.length - 1) { setPlaying(false); return; }
-    const t = setTimeout(() => setStep((s) => Math.min(ORG_STEPS.length - 1, s + 1)), 1150);
-    return () => clearTimeout(t);
-  }, [playing, step]);
-
-  const curQuarterIdx = step - 1;
-
-  const isActive = useCallback((box: typeof scenario.boxes[0]) => {
-    if (box.bucket === 'existing') return true;
-    return ORG_QUARTERS.indexOf(box.quarter) <= curQuarterIdx;
-  }, [curQuarterIdx]);
-
-  const justActivated = useCallback((box: typeof scenario.boxes[0]) => {
-    if (box.bucket === 'existing') return step === 0;
-    return ORG_QUARTERS.indexOf(box.quarter) === curQuarterIdx;
-  }, [curQuarterIdx, step]);
-
-  const S = ORG_SCALE;
-  const px = (b: RawBox) => ({ l: b.x * S, t: b.y * S, w: b.w * S, h: b.h * S, cx: (b.x + b.w / 2) * S, bot: (b.y + b.h) * S, top: b.y * S });
-
-  const byId = useMemo(() => {
-    const m: Record<string, RawBox> = {};
-    RAW_BOXES.forEach((b) => (m[b.id] = b));
-    return m;
-  }, []);
-
-  const connectors = useMemo(() => {
-    const paths: { id: string; d: string }[] = [];
-    for (const b of RAW_BOXES) {
-      if (!b.parent || !byId[b.parent]) continue;
-      const p = px(byId[b.parent]);
-      const c = px(b);
-      const midY = c.top - 13;
-      paths.push({ id: b.id, d: `M ${p.cx} ${p.bot} L ${p.cx} ${midY} L ${c.cx} ${midY} L ${c.cx} ${c.top}` });
-    }
-    return paths;
-  }, [byId]);
-
-  const counts = useMemo(() => {
-    const roles = scenario.boxes.filter((b) => !b.context);
-    const total = roles.length;
-    const on = roles.filter((b) => isActive(b)).length;
-    const by: Record<string, number> = { y2027: 0, y2028: 0, y2029: 0, existing: 0 };
-    roles.forEach((b) => { if (isActive(b)) by[b.bucket]++; });
-    return { total, on, by };
-  }, [scenario, isActive]);
-
+function WbsColumn({ col, view, popKeys }: { col: WbsColumnDef; view: ViewMode; popKeys: Record<string, number> }) {
   return (
-    <div className="doc">
-      <header className="doc-hero org-hero">
-        <div>
-          <div className="kicker">SOM Structure · 2027–2029</div>
-          <h1>Org Chart &amp; <em>Hiring Timelines</em></h1>
-        </div>
-        <p className="lede">
-          The proposed School of Medicine org chart, revealed the way it will be built — hire by hire,
-          quarter by quarter. Compare the <strong>Ideal</strong> ramp against the <strong>Failsafe</strong>{' '}
-          schedule that absorbs approval and onboarding delays.
-        </p>
-      </header>
-
-      <div className="org-controls">
-        <div className="org-scenario-toggle">
-          {Object.values(SCENARIOS).map((sc) => (
-            <button
-              key={sc.key}
-              className={`ost-btn${scenarioKey === sc.key ? ' active' : ''}`}
-              onClick={() => setScenarioKey(sc.key)}
-            >
-              {sc.name}
-            </button>
-          ))}
-        </div>
-
-        <div className="org-transport">
-          <button className="org-play" onClick={() => {
-            if (step >= ORG_STEPS.length - 1) { setStep(0); setPlaying(true); }
-            else setPlaying((p) => !p);
-          }}>
-            {playing ? '❙❙ Pause' : (step >= ORG_STEPS.length - 1 ? '↻ Replay' : '▶ Play')}
-          </button>
-          <button className="org-step-btn" onClick={() => { setPlaying(false); setStep((s) => Math.max(0, s - 1)); }} disabled={step === 0}>‹</button>
-          <button className="org-step-btn" onClick={() => { setPlaying(false); setStep((s) => Math.min(ORG_STEPS.length - 1, s + 1)); }} disabled={step === ORG_STEPS.length - 1}>›</button>
-        </div>
-
-        <div className="org-step-readout">
-          <span className="osr-label">Showing through</span>
-          <span className="osr-value">{ORG_STEPS[step] === 'Baseline' ? 'Baseline (existing roles)' : ORG_STEPS[step]}</span>
-        </div>
+    <div className={`wbs-col ${col.accent}`}>
+      <div className="wbs-col-head">
+        <span className="wbs-col-title">{col.title}</span>
       </div>
-
-      <div className="org-scrubber">
-        {ORG_STEPS.map((s, i) => (
-          <button
-            key={s}
-            className={`scrub-pill ${i === step ? 'current' : ''} ${i < step ? 'past' : ''}`}
-            onClick={() => { setPlaying(false); setStep(i); }}
-          >
-            <span className="scrub-tick" />
-            <span className="scrub-text">{s === 'Baseline' ? 'Start' : s}</span>
-          </button>
+      <div className="wbs-col-body">
+        {col.groups.map((g) => (
+          <div className="wbs-group" key={g.label}>
+            <div className="wbs-group-label">{g.label}</div>
+            {g.ids.map((id) => {
+              const d = findDeliverable(id, view);
+              if (!d) return null;
+              const s = statusOf(d.pct);
+              return (
+                <div className="wbs-item" key={id}>
+                  <span className="wbs-item-id">{d.id}</span>
+                  <span className="wbs-item-text">{d.text}</span>
+                  {s !== 'blue' && (
+                    <span
+                      key={`${id}-${popKeys[id] || 0}`}
+                      className={`wbs-dot ${s}${popKeys[id] ? ' wbs-dot-pop' : ''}`}
+                      title={STATUS_LABEL[s]}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         ))}
       </div>
+    </div>
+  );
+}
 
-      <div className="org-canvas-wrap" ref={wrapRef}>
-        <div className="org-canvas" style={{ width: ORG_W, height: ORG_H, transform: `scale(${scale})` }}>
-          <svg className="org-links" width={ORG_W} height={ORG_H} viewBox={`0 0 ${ORG_W} ${ORG_H}`}>
-            {connectors.map((c) => {
-              const box = scenario.boxes.find((b) => b.id === c.id);
-              const active = box ? isActive(box) : false;
-              return <path key={c.id} d={c.d} className={`org-link ${active ? 'on' : 'off'}`} />;
-            })}
-          </svg>
+// Chronological playback order: oldest → newest
+const P1G_PLAY_SEQUENCE: ViewMode[] = ['ideal', 'y1q1', 'y1q2', 'actual'];
+const P1G_PLAY_STEP_MS = 2000;
 
-          {scenario.boxes.map((b) => {
-            const g = px(b);
-            const active = isActive(b);
-            const fresh = justActivated(b) && step > 0 && !b.context && b.bucket !== 'existing';
-            const fill = BUCKET[b.bucket].fill;
-            const fontSize = b.h < 0.3 ? 8 : (b.w < 1.05 ? 9.5 : (b.w > 3 ? 13 : 10.5));
-            return (
-              <div
-                key={b.id}
-                className={`org-box${active ? ' on' : ' off'}${b.context ? ' context' : ''}${fresh ? ' fresh' : ''}`}
-                style={{
-                  left: g.l, top: g.t, width: g.w, height: g.h,
-                  ['--bx' as string]: fill, fontSize,
-                  background: active ? fill : undefined,
-                }}
-                title={b.context ? b.label : `${b.label} — ${b.q === 'Existing' ? 'existing role' : 'onboards ' + b.q}`}
-              >
-                <span className="org-box-label">{b.label}</span>
-              </div>
-            );
-          })}
+function Phase1BreakdownTab() {
+  const [view, setView] = useState<ViewMode>('actual');
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [popKeys, setPopKeys] = useState<Record<string, number>>({});
+  const prevStatusesRef = useRef<Record<string, WbsStatus> | null>(null);
+
+  useEffect(() => {
+    const current: Record<string, WbsStatus> = {};
+    WBS_COLUMNS.forEach((col) => {
+      col.groups.forEach((g) => {
+        g.ids.forEach((id) => {
+          const d = findDeliverable(id, view);
+          if (d) current[id] = statusOf(d.pct);
+        });
+      });
+    });
+    const prev = prevStatusesRef.current;
+    if (prev) {
+      const changed: Record<string, boolean> = {};
+      let any = false;
+      Object.keys(current).forEach((id) => {
+        if (prev[id] !== undefined && prev[id] !== current[id]) {
+          changed[id] = true;
+          any = true;
+        }
+      });
+      if (any) {
+        setPopKeys((old) => {
+          const next = { ...old };
+          Object.keys(changed).forEach((id) => { next[id] = (next[id] || 0) + 1; });
+          return next;
+        });
+      }
+    }
+    prevStatusesRef.current = current;
+  }, [view]);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const idx = P1G_PLAY_SEQUENCE.indexOf(view);
+    const startIdx = idx === -1 ? 0 : idx;
+    if (startIdx >= P1G_PLAY_SEQUENCE.length - 1) return;
+    const id = setTimeout(() => setView(P1G_PLAY_SEQUENCE[startIdx + 1]), P1G_PLAY_STEP_MS);
+    return () => clearTimeout(id);
+  }, [isPlaying, view]);
+
+  useEffect(() => {
+    if (isPlaying && view === P1G_PLAY_SEQUENCE[P1G_PLAY_SEQUENCE.length - 1]) {
+      const id = setTimeout(() => setIsPlaying(false), P1G_PLAY_STEP_MS);
+      return () => clearTimeout(id);
+    }
+  }, [isPlaying, view]);
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      setIsPlaying(false);
+    } else {
+      setView(P1G_PLAY_SEQUENCE[0]);
+      setIsPlaying(true);
+    }
+  };
+
+  const jumpTo = (v: ViewMode) => {
+    setIsPlaying(false);
+    setView(v);
+  };
+
+  return (
+    <div className="doc doc-compact">
+      <div className="tl-viewrow wbs-viewrow">
+        <div className="tl-play-wrap">
+          <div className="tl-play-note" aria-hidden="true">
+            <span className="tl-play-note-text">click me</span>
+            <svg viewBox="0 0 30 20" fill="none">
+              <path d="M2 10 C 10 6, 18 6, 24 8" stroke="#1f8a5b" strokeWidth="2" strokeLinecap="round" />
+              <path d="M24 8 L 19 4.5 M24 8 L 20 12" stroke="#1f8a5b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <button
+            type="button"
+            className={`tl-play-btn${isPlaying ? ' is-playing' : ''}`}
+            onClick={togglePlay}
+            aria-label={isPlaying ? 'Pause' : 'Play through view states'}
+            aria-pressed={isPlaying}
+          >
+            {isPlaying ? (
+              <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                <rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
+                <rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                <path d="M4 2.5v11l10-5.5-10-5.5z" fill="currentColor" />
+              </svg>
+            )}
+          </button>
+        </div>
+        <div className="tl-toggle" role="tablist" aria-label="Phase 1 Goals view">
+          <button
+            role="tab"
+            aria-selected={view === 'actual'}
+            className={`tl-toggle-btn${view === 'actual' ? ' is-on' : ''}`}
+            onClick={() => jumpTo('actual')}
+          >
+            Y1Q3
+          </button>
+          <button
+            role="tab"
+            aria-selected={view === 'y1q2'}
+            className={`tl-toggle-btn${view === 'y1q2' ? ' is-on' : ''}`}
+            onClick={() => jumpTo('y1q2')}
+          >
+            Y1Q2
+          </button>
+          <button
+            role="tab"
+            aria-selected={view === 'y1q1'}
+            className={`tl-toggle-btn${view === 'y1q1' ? ' is-on' : ''}`}
+            onClick={() => jumpTo('y1q1')}
+          >
+            Y1Q1
+          </button>
+          <button
+            role="tab"
+            aria-selected={view === 'ideal'}
+            className={`tl-toggle-btn${view === 'ideal' ? ' is-on' : ''}`}
+            onClick={() => jumpTo('ideal')}
+          >
+            PROPOSAL
+          </button>
         </div>
       </div>
 
-      <div className="org-footer">
-        <div className="org-legend">
-          <div className="ol-title">Hire year</div>
-          <div className="ol-items">
-            {Object.entries(BUCKET).map(([key, val]) => (
-              <span key={key} className="ol-item">
-                <span className="ol-sw" style={{ background: val.fill }} />
-                {val.label.replace(' role', '').replace(' hire', '')}
-              </span>
-            ))}
-          </div>
-        </div>
+      <div className="wbs-legend wbs-legend-top">
+        <span className="wbs-legend-item"><span className="wbs-dot green" />Complete</span>
+        <span className="wbs-legend-item"><span className="wbs-dot yellow" />Ongoing</span>
+        <span className="wbs-legend-hint">Statuses are pulled live from the Progress Timeline&apos;s deliverable data</span>
+      </div>
 
-        <div className="org-counter">
-          <div className="oc-big"><strong>{counts.on}</strong> <span>/ {counts.total} roles onboarded</span></div>
-          <div className="oc-bar">
-            {Object.entries(counts.by).map(([key, cnt]) => (
-              <div key={key} className="oc-seg" style={{ width: `${cnt / counts.total * 100}%`, background: BUCKET[key]?.fill }} />
-            ))}
-          </div>
-        </div>
+      <div className="wbs-arrows" aria-hidden="true">
+        <div className="wbs-arrows-line" />
+        {WBS_COLUMNS.map((c) => <div className="wbs-arrow-drop" key={c.num} />)}
+      </div>
 
-        <div className="org-insights">
-          <div className="oi-title">{scenario.name} — strategy</div>
-          <ul>
-            {scenario.insights.map((t, i) => <li key={i}>{t}</li>)}
-          </ul>
-        </div>
+      <div className="wbs-grid">
+        {WBS_COLUMNS.map((c) => <WbsColumn col={c} view={view} popKeys={popKeys} key={c.num} />)}
       </div>
     </div>
   );
@@ -976,28 +1151,8 @@ function ComingSoon({ tab }: { tab: TabDef }) {
 // ─── HubShell ─────────────────────────────────────────────────────────────────
 
 const TABS: TabDef[] = [
-  { id: 'timeline',     label: 'Project Timeline',              num: '01', status: 'live', Component: TimelineTab },
-  { id: 'orgchart',     label: 'Org Chart & Hiring Timelines',  num: '02', status: 'live', Component: OrgChartTab },
-  {
-    id: 'budget', label: 'Budget & Payments', num: '03', status: 'soon',
-    blurb: 'The full financial picture — the quarterly payment schedule tied to deliverable acceptance, phase and sub-phase cost breakdowns, contingency tracking, and travel expenses across all 38 on-site trips.',
-    planned: ['Quarterly payment schedule', 'Phase & sub-phase costs', 'Contingency tracking', 'Travel / trip expenses'],
-  },
-  {
-    id: 'deliverables', label: 'Deliverables', num: '04', status: 'soon',
-    blurb: 'A live checklist of every deliverable across the seven sub-phases, with owners, acceptance status, and links to the underlying documents as each milestone is submitted and approved.',
-    planned: ['Acceptance status per item', 'Owner & due date', 'Regulatory submissions', 'Document links'],
-  },
-  {
-    id: 'team', label: 'Team & Governance', num: '05', status: 'soon',
-    blurb: 'Project leads, working teams, and the SOM governance structure — the PennMed and AUD participants, committee make-up, and reporting relationships as the school\'s leadership is recruited.',
-    planned: ['Project leads & working teams', 'SOM org chart', 'Committees & roles', 'PennMed–AUD partner pairings'],
-  },
-  {
-    id: 'documents', label: 'Documents', num: '06', status: 'soon',
-    blurb: 'A central library for the MSA, SOW agreements, curriculum framework, accreditation submissions, and clinical-affiliate MOUs — versioned as they move from draft to final.',
-    planned: ['MSA & SOWs', 'Curriculum framework', 'Accreditation filings', 'Affiliate MOUs'],
-  },
+  { id: 'timeline', label: 'Progress Timeline', num: '01', status: 'live', Component: TimelineTab },
+  { id: 'phase1breakdown', label: 'Phase 1 Goals', num: '02', status: 'live', Component: Phase1BreakdownTab },
 ];
 
 export default function AUDProgressHub() {
@@ -1032,7 +1187,7 @@ export default function AUDProgressHub() {
             </div>
             <div className="mh-meta">
               <span><span className="mh-dot" /></span>
-              <span>Updated <strong>After Year 1 Q2 Report Accepted by AUD</strong></span>
+              <span>Updated <strong>with Y1Q3 Report</strong></span>
             </div>
           </div>
           <nav className="tabnav">

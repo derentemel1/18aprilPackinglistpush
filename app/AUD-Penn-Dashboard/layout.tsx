@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Newsreader, IBM_Plex_Sans, IBM_Plex_Mono } from 'next/font/google';
+import { Newsreader, IBM_Plex_Sans, IBM_Plex_Mono, Caveat } from 'next/font/google';
 
 const newsreader = Newsreader({
   subsets: ['latin'],
@@ -24,6 +24,13 @@ const ibmPlexMono = IBM_Plex_Mono({
   display: 'swap',
 });
 
+const caveat = Caveat({
+  subsets: ['latin'],
+  weight: ['600', '700'],
+  variable: '--font-caveat',
+  display: 'swap',
+});
+
 export const metadata = {
   title: 'AUD Progress Hub',
   description: 'AUD-Penn Operations Dashboard',
@@ -36,7 +43,7 @@ export const metadata = {
 export default function AUDLayout({ children }: { children: ReactNode }) {
   return (
     <div
-      className={`${newsreader.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable}`}
+      className={`${newsreader.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} ${caveat.variable}`}
       style={{
         fontFamily: 'var(--font-sans, "IBM Plex Sans", system-ui, sans-serif)',
       }}
