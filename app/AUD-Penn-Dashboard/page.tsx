@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import './aud.css';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -348,7 +348,7 @@ function MonthAxis({ pxPerMonth }: { pxPerMonth: number }) {
   const ticks = [];
   for (let m = 0; m <= TIMELINE_END; m += 3) ticks.push(m);
   return (
-    <div className="axis-track" style={{ position: 'relative', height: 20 }}>
+    <div className="axis">
       <div className="axis-line" />
       {ticks.map((m) => {
         const { name } = monthLabel(m);
@@ -394,6 +394,8 @@ function SubphaseBar({ sub, phaseColor, pxPerMonth, isActive, onClick, view, row
   const viewData = getSubView(sub, view);
   const completion = viewData.snapshot?.completion ?? 0;
   const completionPct = Math.round(completion * 1000) / 10;
+  const idLabel = `${sub.id}${useActual ? ` · ${completionPct}%` : ''}`;
+  const isNarrow = barW < 64;
 
   return (
     <div
@@ -401,10 +403,6 @@ function SubphaseBar({ sub, phaseColor, pxPerMonth, isActive, onClick, view, row
       onClick={onClick}
       style={{ '--row-i': rowIndex } as React.CSSProperties}
     >
-      <div className="sub-row-label">
-        <span className="sub-id">{sub.id}</span>
-        <span className="sub-title">{sub.title}</span>
-      </div>
       <div className="sub-row-track">
         <div
           className={`sub-bar sub-${phaseColor}${hasSlip ? ' has-slip' : ''}`}
@@ -419,10 +417,11 @@ function SubphaseBar({ sub, phaseColor, pxPerMonth, isActive, onClick, view, row
             className="sub-bar-fillline"
             style={{ left: `${completion * 100}%`, opacity: useActual && completion > 0 && completion < 1 ? 1 : 0 }}
           />
-          <span className="sub-bar-id">
-            {sub.id}{useActual ? ` · ${completionPct}%` : ''}
-          </span>
+          {!isNarrow && <span className="sub-bar-id">{idLabel}</span>}
         </div>
+        {isNarrow && (
+          <span className="sub-bar-id-outside" style={{ left: left + barW + 8 }}>{idLabel}</span>
+        )}
       </div>
     </div>
   );
@@ -455,12 +454,12 @@ function Timeline({ activeSubId, onSelect, view }: TimelineProps) {
     (now.getDate() - 1) / daysInMonth(now);
   const showToday = todayOffset >= 0 && todayOffset <= TIMELINE_END;
 
-  const TRACK_LEFT = 340;
+  const TRACK_LEFT = 20;
 
   useEffect(() => {
     const measure = () => {
       if (!wrapRef.current) return;
-      const w = wrapRef.current.clientWidth - 320 - 40;
+      const w = wrapRef.current.clientWidth - 40;
       setTrackWidth(Math.max(600, w));
     };
     measure();
@@ -501,18 +500,9 @@ function Timeline({ activeSubId, onSelect, view }: TimelineProps) {
 
   return (
     <div className="timeline-wrap" ref={wrapRef}>
-      <div className="timeline-header">
-        <div>
-          {!activeSubId && (
-            <span className="tl-cta">
-              <span className="tl-cta-dot" />
-              Click bars to learn more
-            </span>
-          )}
-        </div>
-        <div />
+      <div className="tl-list-note" aria-hidden="true">
+        <span className="tl-play-note-text" />
       </div>
-
       <div className="timeline-scroll">
         <div
           className="timeline-inner"
@@ -566,17 +556,15 @@ function Timeline({ activeSubId, onSelect, view }: TimelineProps) {
 
           {/* Axis */}
           <div className="axis-band">
-            <div style={{ width: 320 }} />
-            <div style={{ width: trackWidth }}>
+            <div className="axis-track" style={{ width: trackWidth }}>
               <MonthAxis pxPerMonth={pxPerMonth} />
             </div>
           </div>
 
           {/* Year band */}
           <div className="year-band">
-            <div style={{ width: 320 }} />
             <div className="year-track" style={{ width: trackWidth }}>
-              {[1, 2, 3].map((yr) => {
+              {[1, 2, 3, 4].map((yr) => {
                 const start = (yr - 1) * 12;
                 if (start >= TIMELINE_END) return null;
                 const end = Math.min(start + 12, TIMELINE_END);
@@ -696,9 +684,16 @@ function DetailPanel({ activeSubId, view, onClose }: { activeSubId: string | nul
 const PLAY_SEQUENCE: ViewMode[] = ['ideal', 'y1q1', 'y1q2', 'actual'];
 const PLAY_STEP_MS = 2000;
 
-function TimelineTab() {
+interface TimelineTabProps {
+  hideControls?: boolean;
+  view?: ViewMode;
+}
+
+function TimelineTab({ hideControls, view: controlledView }: TimelineTabProps = {}) {
   const [activeSubId, setActiveSubId] = useState<string | null>(null);
-  const [view, setView] = useState<ViewMode>('actual');
+  const [internalView, setInternalView] = useState<ViewMode>('actual');
+  const view = hideControls && controlledView ? controlledView : internalView;
+  const setView = setInternalView;
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
@@ -733,14 +728,617 @@ function TimelineTab() {
 
   return (
     <div className="doc doc-compact">
-      <div className="tl-bar">
-        <div className="tl-bar-left">
-          <span className="kicker"></span>
-          <h1 className="tl-bar-title">Timelines &amp; Progress Snapshots</h1>
+      {!hideControls && (
+        <div className="tl-viewrow">
+          <div className="tl-play-wrap">
+            <div className="tl-play-note" aria-hidden="true">
+              <span className="tl-play-note-text">click me</span>
+              <svg viewBox="0 0 30 20" fill="none">
+                <path d="M2 10 C 10 6, 18 6, 24 8" stroke="#1f8a5b" strokeWidth="2" strokeLinecap="round" />
+                <path d="M24 8 L 19 4.5 M24 8 L 20 12" stroke="#1f8a5b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <button
+              type="button"
+              className={`tl-play-btn${isPlaying ? ' is-playing' : ''}`}
+              onClick={togglePlay}
+              aria-label={isPlaying ? 'Pause' : 'Play through view states'}
+              aria-pressed={isPlaying}
+            >
+              {isPlaying ? (
+                <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                  <rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
+                  <rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">
+                  <path d="M4 2.5v11l10-5.5-10-5.5z" fill="currentColor" />
+                </svg>
+              )}
+            </button>
+          </div>
+          <div className="tl-toggle" role="tablist" aria-label="Timeline view">
+            <button
+              role="tab"
+              aria-selected={view === 'actual'}
+              className={`tl-toggle-btn${view === 'actual' ? ' is-on' : ''}`}
+              onClick={() => jumpTo('actual')}
+            >
+              Y1Q3
+            </button>
+            <button
+              role="tab"
+              aria-selected={view === 'y1q2'}
+              className={`tl-toggle-btn${view === 'y1q2' ? ' is-on' : ''}`}
+              onClick={() => jumpTo('y1q2')}
+            >
+              Y1Q2
+            </button>
+            <button
+              role="tab"
+              aria-selected={view === 'y1q1'}
+              className={`tl-toggle-btn${view === 'y1q1' ? ' is-on' : ''}`}
+              onClick={() => jumpTo('y1q1')}
+            >
+              Y1Q1
+            </button>
+            <button
+              role="tab"
+              aria-selected={view === 'ideal'}
+              className={`tl-toggle-btn${view === 'ideal' ? ' is-on' : ''}`}
+              onClick={() => jumpTo('ideal')}
+            >
+              PROPOSAL
+            </button>
+          </div>
+          <span className="tl-viewrow-note">
+            {view === 'ideal'
+              ? 'As written in SOW1 October 2025'
+              : view === 'y1q2'
+              ? "Earlier snapshot — before today's data sync"
+              : view === 'y1q1'
+              ? 'Earliest snapshot on record'
+              : ''}
+          </span>
+        </div>
+      )}
+
+      <div className="main-grid">
+        <div className="timeline-stage">
+          <Timeline
+            activeSubId={activeSubId}
+            view={view}
+            onSelect={(id) => setActiveSubId(id === activeSubId ? null : id)}
+          />
+          {activeSubId && (
+            <div className="detail-backdrop" onClick={() => setActiveSubId(null)} />
+          )}
+          <DetailPanel activeSubId={activeSubId} view={view} onClose={() => setActiveSubId(null)} />
         </div>
       </div>
 
-      <div className="tl-viewrow">
+      <footer className="doc-footer">
+        <span>Source · Redline_v2_AUD_PennMed_SOW.Final · October 2025</span>
+        <span>Click any sub-phase bar in the timeline for full deliverables.</span>
+      </footer>
+    </div>
+  );
+}
+
+// ─── ProjectRoadTab ─────────────────────────────────────────────────────────
+// Full 5-phase roadmap, reorganized as a traditional Gantt (one row per phase,
+// overlapping start dates, milestone lines, live "today" marker). Phase 1 & 2 rows
+// mirror data-model ids; Phases 3-5 are shown for structure/reference only.
+
+type RoadColor = 'p1' | 'p2' | 'p3' | 'p4' | 'p5';
+type RoadView = 'y1q1' | 'y1q2' | 'actual';
+
+interface RoadSub {
+  id: string;
+  title: string;
+  jump?: boolean;
+}
+
+interface RoadPhaseDef {
+  id: string;
+  color: RoadColor;
+  label: string;
+  name: string;
+  takeaway: string;
+  bullets: string[];
+  main: [number, number];
+  subs: RoadSub[];
+}
+
+interface OriginRect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+// Month index 0 = October 2025 (same epoch as the Sub-Phase Timeline tab)
+const ROW_BASE_YEAR = 2025;
+const ROW_BASE_MONTH = 9; // October (0-indexed, Jan = 0)
+const ROW_AXIS_END = 100; // Jan 2034
+
+const ROAD_PHASES: RoadPhaseDef[] = [
+  {
+    id: 'P1',
+    color: 'p1',
+    label: 'Phase 1',
+    name: 'Alliance Alignment, Project Mapping & Approval Submission',
+    takeaway: 'Lays the policy & academic groundwork needed for approval.',
+    bullets: [
+      'Establishes **shared governance** & defines project roles, reporting, & timelines.',
+      "Assesses AUD's **facilities, IT, and central services** for feasibility.",
+      'Produces the **curriculum framework** and **clinical-partners** for submission.',
+      'Submits to the **CAA & SACSCOC applications -** before the school can be built.',
+    ],
+    main: [0, 16],
+    subs: [
+      { id: '1.1', title: 'Strategic Partner Alignment, Logistics & Project Mapping', jump: true },
+      { id: '1.2', title: 'Essential Materials Preparation & Approval Submission', jump: true },
+      { id: '1.3', title: 'Admissions & Marketing Planning', jump: true },
+    ],
+  },
+  {
+    id: 'P2',
+    color: 'p2',
+    label: 'Phase 2',
+    name: 'SOM Launch — Marketing, Admissions, Pre-Clinical Curriculum, Faculty',
+    takeaway: 'Converts an approved plan into a functioning school.',
+    bullets: [
+      'Finalizes the **SOM leadership team**.',
+      'Runs the **first admissions cycle** and selects the inaugural class.',
+      'Builds all **pre-clinical** course content',
+      'Recruits and onboards **founding core faculty**.',
+    ],
+    main: [12, 80],
+    subs: [
+      { id: '2.1', title: 'Finalizing the School Leadership Team', jump: true },
+      { id: '2.2', title: 'Admission Process & Student Selection', jump: true },
+      { id: '2.3', title: 'Pre-Clinical Course Material & Faculty Selection', jump: true },
+      { id: '2.4', title: 'Faculty & Staff Professional Development', jump: true },
+    ],
+  },
+  {
+    id: 'P3',
+    color: 'p3',
+    label: 'Phase 3',
+    name: 'Initiation of Medical School Classes & Preparation for the Clinical Phase',
+    takeaway: 'Opens the doors and prepares for clinical training.',
+    bullets: [
+      'The **first class begins** pre-clinical coursework.',
+      '**Clinical rotation sites** are selected and onboarded.',
+      'Clerkship Directors are trained through the **Clinical Educator Academy**.',
+    ],
+    main: [28, 80],
+    subs: [
+      { id: '3A', title: 'Initiation of Pre-Clinical Coursework' },
+      { id: '3B', title: 'Developing Clinical Cores & Rotation Sites' },
+      { id: '3C', title: 'Selecting & Developing Clinical Educators & Clerkship Directors' },
+    ],
+  },
+  {
+    id: 'P4',
+    color: 'p4',
+    label: 'Phase 4',
+    name: 'Clinical Implementation & Advancing Medically Related Research',
+    takeaway: 'Puts students into clinical practice and builds research capacity.',
+    bullets: [
+      'Students enter **core clerkships and elective rotations**.',
+      'Includes rotations at **Penn Medicine** itself.',
+      'Stands up a **research strategic plan** for AUD-SOM.',
+    ],
+    main: [46, 80],
+    subs: [
+      { id: '4A', title: 'Deliver Core Clerkships & Clinical Competency Assessment' },
+      { id: '4B', title: 'Develop & Deliver Elective Clinical Rotations' },
+      { id: '4C', title: 'Promoting Medical Research at AUD' },
+    ],
+  },
+  {
+    id: 'P5',
+    color: 'p5',
+    label: 'Phase 5',
+    name: 'Assessment, Accreditation & Expanding the AUD Brand',
+    takeaway: 'Certifies the school and charts its growth.',
+    bullets: [
+      'Prepares graduates for **licensing exams**.',
+      'Accompanies **international accreditation** (self-study, mock visit, site review).',
+      "Charts growth — larger class sizes, **3+4 admissions, joint degrees** — extending AUD's brand across Penn.",
+    ],
+    main: [40, 100],
+    subs: [
+      { id: '5A', title: 'Student Assessment & Career Progression' },
+      { id: '5B', title: 'Institutional Assessment & Accreditation' },
+      { id: '5C', title: 'Expanding AUD Programs & Brand' },
+    ],
+  },
+];
+
+interface RoadMilestone {
+  month: number;
+  label: string;
+  dateLabel: string;
+}
+
+const ROAD_MILESTONES: RoadMilestone[] = [
+  { month: 13, label: 'SOM APPROVED', dateLabel: 'October 2026' },
+  { month: 30, label: 'Class Admitted', dateLabel: 'March 2028' },
+  { month: 36, label: 'SOM BEGINS', dateLabel: 'September 2028' },
+  { month: 60, label: 'CLERKSHIPS BEGIN', dateLabel: 'September 2030' },
+  { month: 80, label: 'GRADUATION', dateLabel: 'May 2032' },
+  { month: 97, label: 'SOM Accredited', dateLabel: 'July 2033' },
+];
+
+const ROAD_PLAY_SEQUENCE: RoadView[] = ['y1q1', 'y1q2', 'actual'];
+const ROAD_PLAY_STEP_MS = 2000;
+
+const PHASE1_COMPLETION: Record<RoadView, number> = {
+  y1q1: 0.23,
+  y1q2: 0.30,
+  actual: 0.39, // Y1Q3 — cumulative effort spend
+};
+
+interface PhaseBudget {
+  id: string;
+  color: RoadColor;
+  label: string;
+  amount: number;
+}
+
+const PHASE_BUDGETS: PhaseBudget[] = [
+  { id: 'P1', color: 'p1', label: 'Phase 1', amount: 1267434 },
+  { id: 'P2', color: 'p2', label: 'Phase 2', amount: 5515960 },
+  { id: 'P3', color: 'p3', label: 'Phase 3', amount: 4777600 },
+  { id: 'P4', color: 'p4', label: 'Phase 4', amount: 2832600 },
+  { id: 'P5', color: 'p5', label: 'Phase 5', amount: 698000 },
+];
+
+const PROJECT_COMPLETION: Record<RoadView, number> = {
+  y1q1: 0.0184,
+  y1q2: 0.0240,
+  actual: 0.0306, // Y1Q3 — cumulative project effort complete
+};
+
+const VIEW_LABELS: Record<RoadView, string> = {
+  y1q1: 'Y1Q1',
+  y1q2: 'Y1Q2',
+  actual: 'Y1Q3',
+};
+
+function boldify(text: string) {
+  const parts = text.split(/\*\*(.+?)\*\*/g);
+  return parts.map((part, i) => (i % 2 === 1 ? <strong key={i}>{part}</strong> : part));
+}
+
+const MONTH_ABBR3 = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function axisMonth(m: number) {
+  const total = ROW_BASE_MONTH + m;
+  const month = total % 12;
+  return MONTH_ABBR3[month];
+}
+function pctOf(m: number) {
+  return (m / ROW_AXIS_END) * 100;
+}
+
+function PhaseBudgetChart({
+  view,
+  openId,
+  onToggle,
+}: {
+  view: RoadView;
+  openId: string | null;
+  onToggle: (id: string, el?: HTMLElement) => void;
+}) {
+  const total = PHASE_BUDGETS.reduce((sum, p) => sum + p.amount, 0);
+  const completion = PROJECT_COMPLETION[view] || 0;
+  return (
+    <div className="road-budget-stack-wrap">
+      <div className="road-budget-stack">
+        {PHASE_BUDGETS.map((p) => (
+          <div
+            key={p.id}
+            className={`road-budget-seg road-${p.color}${openId === p.id ? ' is-open' : ''}`}
+            style={{ width: (p.amount / total) * 100 + '%' }}
+            role="button"
+            tabIndex={0}
+            onClick={(e) => onToggle(p.id, e.currentTarget)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onToggle(p.id, e.currentTarget); }}
+          >
+            <span className="road-budget-seg-label">{p.label}</span>
+          </div>
+        ))}
+        <div className="road-budget-remain" style={{ left: `${completion * 100}%` }} />
+      </div>
+    </div>
+  );
+}
+
+interface RoadActiveMarker {
+  month: number;
+  label: string;
+  dateLabel: string;
+  isToday?: boolean;
+}
+
+function RoadGanttRows({
+  openId,
+  onToggle,
+  view,
+}: {
+  openId: string | null;
+  onToggle: (id: string, el?: HTMLElement) => void;
+  view: RoadView;
+}) {
+  const ticks: number[] = [];
+  for (let m = 0; m <= ROW_AXIS_END; m++) {
+    const calMonth = (ROW_BASE_MONTH + m) % 12;
+    if (calMonth === 9 || calMonth === 0 || calMonth === 3 || calMonth === 6) ticks.push(m); // Oct, Jan, Apr, Jul
+  }
+
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [hoverPct, setHoverPct] = useState<number | null>(null);
+  const [activeMarker, setActiveMarker] = useState<RoadActiveMarker | null>(null);
+
+  // Live "today" marker — recomputed from the real date, refreshed hourly
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 3600 * 1000);
+    return () => clearInterval(id);
+  }, []);
+  const daysInMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  const todayOffset =
+    (now.getFullYear() - ROW_BASE_YEAR) * 12 + (now.getMonth() - ROW_BASE_MONTH) +
+    (now.getDate() - 1) / daysInMonth(now);
+  const showToday = todayOffset >= 0 && todayOffset <= ROW_AXIS_END;
+
+  const onTrackMove = (e: React.MouseEvent) => {
+    if (!gridRef.current) return;
+    const rect = gridRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    if (x < 0 || x > rect.width) { setHoverPct(null); setActiveMarker(null); return; }
+    const pct = (x / rect.width) * 100;
+    setHoverPct(pct);
+    // Snap to the nearest milestone within ~8px
+    let near: RoadActiveMarker | null = null, best = 8.5;
+    for (const mk of ROAD_MILESTONES) {
+      const mkPct = pctOf(mk.month);
+      const d = Math.abs(x - (mkPct / 100) * rect.width);
+      if (d <= best) { best = d; near = mk; }
+    }
+    if (showToday) {
+      const tPct = pctOf(todayOffset);
+      const d = Math.abs(x - (tPct / 100) * rect.width);
+      if (d <= best) { best = d; near = { month: todayOffset, label: 'Today', dateLabel: 'Today', isToday: true }; }
+    }
+    setActiveMarker(near);
+  };
+  const hoverMonth = hoverPct == null ? 0 : (hoverPct / 100) * ROW_AXIS_END;
+
+  return (
+    <div className="road-rows-wrap">
+      <div className="road-rows-axis">
+        {ticks.map((m) => (
+          <div key={m} className="road-axis-tick" style={{ left: `${pctOf(m)}%` }}>
+            <span className="road-axis-tick-label">{axisMonth(m)}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="road-year-track">
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((yr) => {
+          const start = (yr - 1) * 12;
+          if (start >= ROW_AXIS_END) return null;
+          const end = Math.min(start + 12, ROW_AXIS_END);
+          return (
+            <div key={yr} className="road-year-cell" style={{ left: `${pctOf(start)}%`, width: `${pctOf(end - start)}%` }}>
+              <span className="road-year-label">Year {yr}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div
+        className="road-rows-grid"
+        ref={gridRef}
+        onMouseMove={onTrackMove}
+        onMouseLeave={() => { setHoverPct(null); setActiveMarker(null); }}
+      >
+        {/* vertical gridlines at each tick */}
+        {ticks.map((m) => (
+          <div key={m} className="road-gridline" style={{ left: `${pctOf(m)}%` }} />
+        ))}
+
+        {ROAD_PHASES.map((phase) => {
+          const isOpen = openId === phase.id;
+          const p1Completion = phase.id === 'P1' ? (PHASE1_COMPLETION[view] || 0) : 0;
+          return (
+            <div
+              key={phase.id}
+              className={`road-row road-${phase.color}${isOpen ? ' is-open' : ''}`}
+              role="button"
+              tabIndex={0}
+              aria-expanded={isOpen}
+              onClick={(e) => onToggle(phase.id, e.currentTarget)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onToggle(phase.id); }}
+            >
+              <div
+                className="road-bar road-bar-main"
+                style={{ left: `${pctOf(phase.main[0])}%`, width: `${pctOf(phase.main[1] - phase.main[0])}%` }}
+              >
+                <span className="road-bar-label">
+                  {phase.label}{phase.id === 'P1' ? `: ${Math.round(p1Completion * 100)}%` : ''}
+                </span>
+                {phase.id === 'P1' && (
+                  <div className="road-bar-remain" style={{ left: `${p1Completion * 100}%` }} />
+                )}
+                {phase.id !== 'P1' && (
+                  <div className="road-bar-remain" style={{ left: '0%' }} />
+                )}
+                {phase.id !== 'P1' && <div className="road-bar-hatch-full" />}
+              </div>
+              {phase.id === 'P1' && (
+                <span
+                  className="road-bar-completion-tag"
+                  style={{ left: `calc(${pctOf(phase.main[0])}% + ${p1Completion * pctOf(phase.main[1] - phase.main[0])}%)` }}
+                >
+                  {Math.round(p1Completion * 100)}% complete
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* milestone dashed lines — full-height overlay across axis + year band + rows */}
+      {ROAD_MILESTONES.map((mk) => (
+        <div key={mk.label} className="road-milestone-line" style={{ left: `${pctOf(mk.month)}%` }} />
+      ))}
+
+      {/* live "today" line */}
+      {showToday && (
+        <div className="road-today-line" style={{ left: `${pctOf(todayOffset)}%` }} />
+      )}
+
+      {/* hover playhead — same visual language as Progress Timeline */}
+      {hoverPct != null && (
+        <div
+          className={`timeline-playhead${activeMarker ? (activeMarker.isToday ? ' ph-today' : ' ph-milestone') : ''}`}
+          style={{ left: `${activeMarker ? pctOf(activeMarker.month) : hoverPct}%` }}
+        >
+          <div className="playhead-flag">
+            {activeMarker ? (
+              <>
+                <span className="ph-month">{activeMarker.dateLabel}</span>
+                <span className="ph-sub">{activeMarker.label}</span>
+              </>
+            ) : (
+              <span className="ph-month">
+                {axisMonth(Math.round(hoverMonth))} {ROW_BASE_YEAR + Math.floor((ROW_BASE_MONTH + hoverMonth) / 12)}
+              </span>
+            )}
+          </div>
+          <div className="playhead-line" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RoadOverlayCard({
+  phase,
+  originRect,
+  onClose,
+}: {
+  phase: RoadPhaseDef;
+  originRect: OriginRect | null;
+  onClose: () => void;
+}) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+    if (!originRect) { card.style.opacity = '1'; return; }
+    const parent = card.offsetParent as HTMLElement | null;
+    if (!parent) return;
+    const cr = card.getBoundingClientRect();
+    const pr = parent.getBoundingClientRect();
+    const cardLeft = cr.left - pr.left;
+    const cardTop = cr.top - pr.top;
+    const scaleX = Math.max(originRect.width / cr.width, 0.05);
+    const scaleY = Math.max(originRect.height / cr.height, 0.05);
+    const originCenterX = originRect.left + originRect.width / 2;
+    const originCenterY = originRect.top + originRect.height / 2;
+    const cardCenterX = cardLeft + cr.width / 2;
+    const cardCenterY = cardTop + cr.height / 2;
+    const dx = originCenterX - cardCenterX;
+    const dy = originCenterY - cardCenterY;
+    card.style.transition = 'none';
+    card.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${scaleX}, ${scaleY})`;
+    card.style.opacity = '0';
+    requestAnimationFrame(() => {
+      card.style.transition = 'transform 0.32s cubic-bezier(.2,.8,.2,1), opacity 0.22s ease';
+      card.style.transform = 'translate(-50%, -50%) scale(1,1)';
+      card.style.opacity = '1';
+    });
+  }, [originRect]);
+
+  return (
+    <div className={`road-overlay-card road-${phase.color}`} ref={cardRef}>
+      <button type="button" className="road-overlay-close" aria-label="Close" onClick={onClose}>
+        <svg viewBox="0 0 14 14" width="13" height="13">
+          <path d="M2 2 L12 12 M12 2 L2 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      </button>
+      <div className="road-subpanel-head">
+        <span className="road-subpanel-label">{phase.label}</span>
+        <span className="road-subpanel-name">{phase.name}</span>
+      </div>
+      <p className="road-impact-takeaway">{phase.takeaway}</p>
+      <ul className="road-impact-list">
+        {phase.bullets.map((b, i) => (
+          <li key={i}>{boldify(b)}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ProjectRoadTab() {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [originRect, setOriginRect] = useState<OriginRect | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState<RoadView>('actual');
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    if (!isPlaying) return;
+    const currentIdx = ROAD_PLAY_SEQUENCE.indexOf(view);
+    const startIdx = currentIdx === -1 ? 0 : currentIdx;
+    if (startIdx >= ROAD_PLAY_SEQUENCE.length - 1) return;
+    const id = setTimeout(() => setView(ROAD_PLAY_SEQUENCE[startIdx + 1]), ROAD_PLAY_STEP_MS);
+    return () => clearTimeout(id);
+  }, [isPlaying, view]);
+
+  useEffect(() => {
+    if (isPlaying && view === ROAD_PLAY_SEQUENCE[ROAD_PLAY_SEQUENCE.length - 1]) {
+      const id = setTimeout(() => setIsPlaying(false), ROAD_PLAY_STEP_MS);
+      return () => clearTimeout(id);
+    }
+  }, [isPlaying, view]);
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      setIsPlaying(false);
+    } else {
+      setView(ROAD_PLAY_SEQUENCE[0]);
+      setIsPlaying(true);
+    }
+  };
+
+  const jumpToView = (v: RoadView) => {
+    setIsPlaying(false);
+    setView(v);
+  };
+
+  const toggle = (id: string, rowEl?: HTMLElement) => {
+    if (openId === id) { setOpenId(null); return; }
+    if (rowEl && wrapRef.current) {
+      const originEl = (rowEl.querySelector('.road-bar-main') as HTMLElement) || rowEl;
+      const br = originEl.getBoundingClientRect();
+      const wr = wrapRef.current.getBoundingClientRect();
+      setOriginRect({ left: br.left - wr.left, top: br.top - wr.top, width: br.width, height: br.height });
+    }
+    setOpenId(id);
+  };
+
+  return (
+    <div className="doc doc-compact">
+      <div className="tl-viewrow tl-viewrow-hero">
         <div className="tl-play-wrap">
           <div className="tl-play-note" aria-hidden="true">
             <span className="tl-play-note-text">click me</span>
@@ -768,69 +1366,63 @@ function TimelineTab() {
             )}
           </button>
         </div>
-        <div className="tl-toggle" role="tablist" aria-label="Timeline view">
-          <button
-            role="tab"
-            aria-selected={view === 'actual'}
-            className={`tl-toggle-btn${view === 'actual' ? ' is-on' : ''}`}
-            onClick={() => jumpTo('actual')}
-          >
-            Y1Q3
-          </button>
-          <button
-            role="tab"
-            aria-selected={view === 'y1q2'}
-            className={`tl-toggle-btn${view === 'y1q2' ? ' is-on' : ''}`}
-            onClick={() => jumpTo('y1q2')}
-          >
-            Y1Q2
-          </button>
+        <div className="tl-toggle" role="tablist" aria-label="Roadmap view">
           <button
             role="tab"
             aria-selected={view === 'y1q1'}
             className={`tl-toggle-btn${view === 'y1q1' ? ' is-on' : ''}`}
-            onClick={() => jumpTo('y1q1')}
+            onClick={() => jumpToView('y1q1')}
           >
             Y1Q1
           </button>
           <button
             role="tab"
-            aria-selected={view === 'ideal'}
-            className={`tl-toggle-btn${view === 'ideal' ? ' is-on' : ''}`}
-            onClick={() => jumpTo('ideal')}
+            aria-selected={view === 'y1q2'}
+            className={`tl-toggle-btn${view === 'y1q2' ? ' is-on' : ''}`}
+            onClick={() => jumpToView('y1q2')}
           >
-            PROPOSAL
+            Y1Q2
+          </button>
+          <button
+            role="tab"
+            aria-selected={view === 'actual'}
+            className={`tl-toggle-btn${view === 'actual' ? ' is-on' : ''}`}
+            onClick={() => jumpToView('actual')}
+          >
+            Y1Q3
+            <span className="tl-toggle-latest">Latest</span>
           </button>
         </div>
-        <span className="tl-viewrow-note">
-          {view === 'ideal'
-            ? 'As written in SOW1 October 2025'
-            : view === 'y1q2'
-            ? "Earlier snapshot — before today's data sync"
-            : view === 'y1q1'
-            ? 'Earliest snapshot on record'
-            : ''}
-        </span>
       </div>
 
-      <div className="main-grid">
-        <div className="timeline-stage">
-          <Timeline
-            activeSubId={activeSubId}
-            view={view}
-            onSelect={(id) => setActiveSubId(id === activeSubId ? null : id)}
-          />
-          {activeSubId && (
-            <div className="detail-backdrop" onClick={() => setActiveSubId(null)} />
-          )}
-          <DetailPanel activeSubId={activeSubId} view={view} onClose={() => setActiveSubId(null)} />
-        </div>
+      <div className="road-legend road-legend-top">
+        <span className="road-legend-item"><span className="road-legend-swatch road-legend-repeat" style={{ backgroundColor: '#121111' }} />Primary Effort</span>
+        <span className="road-legend-item"><span className="road-legend-swatch road-legend-hatch" style={{ backgroundColor: '#959090' }} />Accompaniment &amp; Coaching</span>
+        <span className="road-legend-item"><span className="road-legend-swatch road-legend-incomplete" />Incomplete</span>
       </div>
 
-      <footer className="doc-footer">
-        <span>Source · Redline_v2_AUD_PennMed_SOW.Final · October 2025</span>
-        <span>Click any sub-phase bar in the timeline for full deliverables.</span>
-      </footer>
+      <h2 className="road-title">How far along is the project now?</h2>
+      <p className="road-answer">
+        As of {VIEW_LABELS[view]}: <strong>{((PROJECT_COMPLETION[view] || 0) * 100).toFixed(2)}%</strong> of total project effort is complete.
+      </p>
+      <PhaseBudgetChart view={view} openId={openId} onToggle={toggle} />
+
+      <h2 className="road-title road-subtitle-spaced">How far along is each phase?</h2>
+      <p className="road-answer">
+        As of {VIEW_LABELS[view]}: <strong>Phase 1 is {Math.round((PHASE1_COMPLETION[view] || 0) * 100)}% complete</strong> — Phases 2–5 have not yet started.
+      </p>
+      <div className="road-rows-overlay-wrap" ref={wrapRef}>
+        <RoadGanttRows openId={openId} onToggle={toggle} view={view} />
+
+        {ROAD_PHASES.map((phase) =>
+          openId === phase.id ? (
+            <RoadOverlayCard phase={phase} originRect={originRect} onClose={() => setOpenId(null)} key={phase.id} />
+          ) : null
+        )}
+      </div>
+
+      <h2 className="road-title road-subtitle-spaced">How far along is each sub-phase?</h2>
+      <TimelineTab hideControls view={view} />
     </div>
   );
 }
@@ -1106,6 +1698,7 @@ function Phase1BreakdownTab() {
       <div className="wbs-legend wbs-legend-top">
         <span className="wbs-legend-item"><span className="wbs-dot green" />Complete</span>
         <span className="wbs-legend-item"><span className="wbs-dot yellow" />Ongoing</span>
+        <span className="wbs-legend-item" />
         <span className="wbs-legend-hint">Statuses are pulled live from the Progress Timeline&apos;s deliverable data</span>
       </div>
 
@@ -1151,20 +1744,20 @@ function ComingSoon({ tab }: { tab: TabDef }) {
 // ─── HubShell ─────────────────────────────────────────────────────────────────
 
 const TABS: TabDef[] = [
-  { id: 'timeline', label: 'Progress Timeline', num: '01', status: 'live', Component: TimelineTab },
-  { id: 'phase1breakdown', label: 'Phase 1 Goals', num: '02', status: 'live', Component: Phase1BreakdownTab },
+  { id: 'project-road', label: 'Project Roadmap', num: '01', status: 'live', Component: ProjectRoadTab },
+  { id: 'phase1breakdown', label: 'Phase 1 DeepDive', num: '03', status: 'live', Component: Phase1BreakdownTab },
 ];
 
 export default function AUDProgressHub() {
   const [active, setActive] = useState<string>(() => {
-    if (typeof window === 'undefined') return 'timeline';
+    if (typeof window === 'undefined') return 'project-road';
     const h = (location.hash || '').replace('#', '');
     if (TABS.some((t) => t.id === h && t.status === 'live')) return h;
     try {
       const s = localStorage.getItem('aud-hub-tab');
       if (s && TABS.some((t) => t.id === s && t.status === 'live')) return s;
     } catch {}
-    return 'timeline';
+    return 'project-road';
   });
 
   useEffect(() => {
